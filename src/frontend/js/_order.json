@@ -1,1 +1,1 @@
-["core", "db", "console", "shell", "scanner", "diagnostics", "history", "filebrowser", "pivotmap"]
+["core", "db", "console", "shell", "tunnel", "diagnostics", "history", "filebrowser"]

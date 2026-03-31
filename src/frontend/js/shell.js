@@ -54,6 +54,7 @@ function runShellCmd() {
   fd.append('action', 'shell');
   fd.append('cmd', cmd);
   fd.append('cwd', shellCwd);
+  fd.append('timeout', '30');
 
   fetchJSON(fd)
     .then(data => {
@@ -61,6 +62,7 @@ function runShellCmd() {
         output.textContent += 'Error: ' + data.error + '\n';
       } else {
         if (data.output) output.textContent += data.output + '\n';
+        if (data.truncated) output.textContent += '[output truncated — exceeded 5MB limit]\n';
         shellCwd = data.cwd || shellCwd;
         document.getElementById('os-shell-prompt').textContent = shellCwd + ' $';
       }

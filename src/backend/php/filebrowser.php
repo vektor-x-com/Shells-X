@@ -7,16 +7,42 @@ $d = realpath($d) ?: $d;
 $entries = [];
 foreach (@scandir($d) ?: [] as $name) {
 $full = $d . '/' . $name;
+$isLink = is_link($full);
+$linkTarget = $isLink ? @readlink($full) : null;
 $real = realpath($full);
-if ($real === false) continue;
-$isDir = is_dir($real);
+$broken = ($real === false);
+$stat = $broken ? @lstat($full) : @stat($full);
+$isDir = $broken ? false : is_dir($real);
 $owner = '?';
-if (function_exists('posix_getpwuid')) {
-$info = @posix_getpwuid(@fileowner($full));
+$group = '?';
+if (function_exists('posix_getpwuid') && $stat) {
+$info = @posix_getpwuid($stat['uid']);
 if ($info) $owner = $info['name'];
 }
-$mode = @fileperms($full);
-$entries[] = ['name'=>$name,'path'=>$real,'dir'=>$isDir,'owner'=>$owner,'perms'=>decoct($mode & 0777)];
+if (function_exists('posix_getgrgid') && $stat) {
+$gi = @posix_getgrgid($stat['gid']);
+if ($gi) $group = $gi['name'];
+}
+$mode = $stat ? $stat['mode'] : 0;
+$perms = decoct($mode & 07777);
+$entry = [
+'name' => $name,
+'path' => $broken ? $full : $real,
+'dir' => $isDir,
+'size' => $isDir ? null : ($stat ? $stat['size'] : null),
+'mtime' => $stat ? $stat['mtime'] : null,
+'owner' => $owner,
+'group' => $group,
+'perms' => $perms,
+'readable' => @is_readable($full),
+'writable' => @is_writable($full),
+];
+if ($isLink) {
+$entry['symlink'] = true;
+$entry['link_target'] = $linkTarget;
+$entry['broken'] = $broken;
+}
+$entries[] = $entry;
 }
 echo json_encode(['dir'=>$d,'entries'=>$entries]);
 exit;

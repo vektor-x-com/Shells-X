@@ -9,7 +9,6 @@ function dbOpen() {
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('history')) db.createObjectStore('history', { keyPath: 'ts' });
-      if (!db.objectStoreNames.contains('scans'))   db.createObjectStore('scans',   { keyPath: 'ts' });
     };
     req.onsuccess = e => { _db = e.target.result; res(_db); };
     req.onerror   = e => rej(e.target.error);
@@ -50,12 +49,7 @@ function dbClear(store) {
 
 // Migrate any existing localStorage data once
 dbOpen().then(() => {
-  const oldScans = localStorage.getItem('shell_scans');
-  const oldHist  = localStorage.getItem('shell_history');
-  if (oldScans) {
-    try { JSON.parse(oldScans).forEach(s => dbPut('scans', s)); } catch(_) {}
-    localStorage.removeItem('shell_scans');
-  }
+  const oldHist = localStorage.getItem('shell_history');
   if (oldHist) {
     try { JSON.parse(oldHist).forEach(h => dbPut('history', h)); } catch(_) {}
     localStorage.removeItem('shell_history');
@@ -64,8 +58,8 @@ dbOpen().then(() => {
 
 // ==================== DB EXPORT / IMPORT ====================
 function exportDB() {
-  Promise.all([dbGetAll('history'), dbGetAll('scans')]).then(([history, scans]) => {
-    const data = { version: 1, exported: new Date().toISOString(), history: history, scans: scans };
+  dbGetAll('history').then(history => {
+    const data = { version: 1, exported: new Date().toISOString(), history: history };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -84,22 +78,20 @@ function importDB(input) {
     try { data = JSON.parse(e.target.result); } catch(_) { alert('Invalid JSON file.'); return; }
     if (!data || typeof data !== 'object') { alert('Invalid DB file format.'); return; }
     const history = Array.isArray(data.history) ? data.history : [];
-    const scans = Array.isArray(data.scans) ? data.scans : [];
-    if (history.length === 0 && scans.length === 0) { alert('No data found in file.'); return; }
+    if (history.length === 0) { alert('No data found in file.'); return; }
     const mode = confirm(
-      'Import ' + history.length + ' history + ' + scans.length + ' scan record(s).\n\n' +
+      'Import ' + history.length + ' history record(s).\n\n' +
       'OK = Merge with existing data\nCancel = Replace all existing data'
     );
     const work = mode
       ? Promise.resolve()
-      : Promise.all([dbClear('history'), dbClear('scans')]);
+      : dbClear('history');
     work.then(() => {
       const puts = [];
       history.forEach(h => { if (h && h.ts) puts.push(dbPut('history', h)); });
-      scans.forEach(s => { if (s && s.ts) puts.push(dbPut('scans', s)); });
       return Promise.all(puts);
     }).then(() => {
-      alert('Import complete (' + history.length + ' history, ' + scans.length + ' scans).');
+      alert('Import complete (' + history.length + ' history records).');
       if (typeof renderHistory === 'function') renderHistory();
     }).catch(err => alert('Import error: ' + err));
   };

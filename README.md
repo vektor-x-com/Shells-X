@@ -19,6 +19,7 @@ A modular, single-file web shell framework with a build generator. Source module
 - **File Browser** — navigate, download, upload, delete. Shows permissions, owner:group, symlink targets, R/W flags
 - **System Diagnostics** — 30+ recon checks for privilege escalation, network pivoting, and credential harvesting (see [Diagnostics](#diagnostics) below)
 - **Command History** — persistent history with re-run, export, and IndexedDB storage
+- **Auto-Randomized Themes** — every build gets a unique color palette by default, with 6 named presets and custom accent support
 
 ## Quick Start
 
@@ -32,6 +33,12 @@ python generate.py --tunnel neoreg_servers/tunnel.php --password s3cret --minify
 
 # Minimal build
 python generate.py --exclude tunnel,diagnostics
+
+# Named color theme
+python generate.py --theme ocean
+
+# Custom accent color
+python generate.py --accent "#ff6600"
 
 # Verify integrity
 python generate.py --verify dist/shell_a3f8c1e2.php
@@ -48,6 +55,8 @@ Output lands in `dist/`. Deploy the single `.php` file to a web server.
 | `--seed STRING` | Operator seed for unique fingerprinting |
 | `--minify` | Strip comments, collapse whitespace |
 | `--exclude MODULES` | Comma-separated: `tunnel`, `diagnostics`, `history` |
+| `--theme NAME` | Color theme: `ocean`, `crimson`, `forest`, `purple`, `mono`, `solar` |
+| `--accent COLOR` | Custom accent hex color (e.g. `"#ff6600"`) |
 | `--output NAME` | Custom output filename |
 | `--verify FILE` | Check integrity of a generated shell |
 
@@ -173,6 +182,28 @@ The Diagnostics tab runs 30+ pure-PHP recon checks (no shell execution required)
 | Indirect vectors | When all direct exec is disabled, shows: mail() -X file write, error_log() type 3 file write, fsockopen() reverse shells, FFI libc calls |
 | Interpreters & tools | Available python, perl, ruby, gcc, nmap, curl, wget, socat, etc. |
 | Hosting panels | Detects 19+ panels (cPanel, Plesk, aaPanel, CloudPanel, etc.) |
+
+## Theming
+
+Every build automatically gets a unique, randomized color palette — no two shells look the same by default. Colors are derived from a random hue using HSL color space, keeping semantic colors (green/red/yellow for success/error/warning) fixed for usability.
+
+```bash
+# Auto-random (default) — unique palette each build
+python generate.py
+
+# Deterministic — same seed always produces the same palette
+python generate.py --seed "op-nighthawk"
+
+# Named preset
+python generate.py --theme crimson
+
+# Preset with accent override
+python generate.py --theme mono --accent "#00ff88"
+```
+
+Available presets: `ocean`, `crimson`, `forest`, `purple`, `mono`, `solar`
+
+When `--password` is set, the login page also matches the chosen theme.
 
 ## Build Fingerprint
 

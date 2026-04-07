@@ -18,9 +18,10 @@ $dir = realpath($dir) ?: $dir;
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shell</title>
+<title>{{PAGE_TITLE}}</title>
 <style>
 {{CSS}}
+{{CUSTOM_CSS}}
 </style>
 </head>
 <body>

@@ -1,6 +1,7 @@
 [
     "crypto",
     "download",
+    "scanner",
     "filebrowser",
     "fileops",
     "eval",

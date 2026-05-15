@@ -1,5 +1,5 @@
 // ==================== INDEXEDDB STORAGE ====================
-const DB_NAME = 'shelldb', DB_VER = 1;
+const DB_NAME = 'shelldb', DB_VER = 3;
 let _db = null;
 
 function dbOpen() {
@@ -8,9 +8,26 @@ function dbOpen() {
     const req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = e => {
       const db = e.target.result;
-      if (!db.objectStoreNames.contains('history')) db.createObjectStore('history', { keyPath: 'ts' });
+      // Clean slate — drop any prior stores and recreate the v2 schema
+      Array.from(db.objectStoreNames).forEach(name => db.deleteObjectStore(name));
+      db.createObjectStore('history', { keyPath: 'ts' });
+      db.createObjectStore('scans', { keyPath: 'id' });
+      // Composite key [scan_id, seq] — server-assigned seq is monotonic per scan,
+      // so re-fetching the same byte range from the events file is idempotent.
+      const results = db.createObjectStore('scan_results', { keyPath: ['scan_id', 'seq'] });
+      results.createIndex('by_scan', 'scan_id', { unique: false });
     };
-    req.onsuccess = e => { _db = e.target.result; res(_db); };
+    req.onblocked = () => {
+      // Another open tab is holding the DB at an older version. Surface it so
+      // the user knows why nothing is rendering instead of staring at a spinner.
+      console.warn('IndexedDB upgrade blocked — close other shell tabs and refresh');
+      rej(new Error('DB upgrade blocked — close other shell tabs and refresh'));
+    };
+    req.onsuccess = e => {
+      _db = e.target.result;
+      _db.onversionchange = () => { _db.close(); _db = null; };
+      res(_db);
+    };
     req.onerror   = e => rej(e.target.error);
   });
 }
@@ -18,7 +35,12 @@ function dbOpen() {
 function dbGetAll(store) {
   return dbOpen().then(db => new Promise((res, rej) => {
     const req = db.transaction(store, 'readonly').objectStore(store).getAll();
-    req.onsuccess = e => res(e.target.result.sort((a, b) => b.ts.localeCompare(a.ts)));
+    req.onsuccess = e => {
+      const rows = e.target.result;
+      // history is keyed by ts (ISO string) — sort newest first
+      if (store === 'history') rows.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
+      res(rows);
+    };
     req.onerror   = e => rej(e.target.error);
   }));
 }
@@ -26,8 +48,19 @@ function dbGetAll(store) {
 function dbPut(store, obj) {
   return dbOpen().then(db => new Promise((res, rej) => {
     const req = db.transaction(store, 'readwrite').objectStore(store).put(obj);
-    req.onsuccess = () => res();
+    req.onsuccess = e => res(e.target.result);
     req.onerror   = e => rej(e.target.error);
+  }));
+}
+
+function dbPutMany(store, objs) {
+  if (!objs || !objs.length) return Promise.resolve();
+  return dbOpen().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const os = tx.objectStore(store);
+    objs.forEach(o => os.put(o));
+    tx.oncomplete = () => res();
+    tx.onerror    = e => rej(e.target.error);
   }));
 }
 
@@ -47,19 +80,39 @@ function dbClear(store) {
   }));
 }
 
-// Migrate any existing localStorage data once
-dbOpen().then(() => {
-  const oldHist = localStorage.getItem('shell_history');
-  if (oldHist) {
-    try { JSON.parse(oldHist).forEach(h => dbPut('history', h)); } catch(_) {}
-    localStorage.removeItem('shell_history');
-  }
-});
+function dbGetByIndex(store, indexName, value) {
+  return dbOpen().then(db => new Promise((res, rej) => {
+    const req = db.transaction(store, 'readonly').objectStore(store).index(indexName).getAll(value);
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = e => rej(e.target.error);
+  }));
+}
+
+function dbDeleteByIndex(store, indexName, value) {
+  return dbOpen().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const os = tx.objectStore(store);
+    const idx = os.index(indexName);
+    const req = idx.openCursor(IDBKeyRange.only(value));
+    req.onsuccess = e => {
+      const cur = e.target.result;
+      if (cur) { os.delete(cur.primaryKey); cur.continue(); }
+    };
+    tx.oncomplete = () => res();
+    tx.onerror    = e => rej(e.target.error);
+  }));
+}
 
 // ==================== DB EXPORT / IMPORT ====================
 function exportDB() {
-  dbGetAll('history').then(history => {
-    const data = { version: 1, exported: new Date().toISOString(), history: history };
+  Promise.all([dbGetAll('history'), dbGetAll('scans'), dbGetAll('scan_results')]).then(([history, scans, results]) => {
+    const data = {
+      version: 3,
+      exported: new Date().toISOString(),
+      history: history,
+      scans: scans,
+      scan_results: results,
+    };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -78,21 +131,25 @@ function importDB(input) {
     try { data = JSON.parse(e.target.result); } catch(_) { alert('Invalid JSON file.'); return; }
     if (!data || typeof data !== 'object') { alert('Invalid DB file format.'); return; }
     const history = Array.isArray(data.history) ? data.history : [];
-    if (history.length === 0) { alert('No data found in file.'); return; }
+    const scans = Array.isArray(data.scans) ? data.scans : [];
+    const results = Array.isArray(data.scan_results) ? data.scan_results : [];
+    if (history.length + scans.length + results.length === 0) { alert('No data found in file.'); return; }
     const mode = confirm(
-      'Import ' + history.length + ' history record(s).\n\n' +
+      'Import ' + history.length + ' history, ' + scans.length + ' scans, ' + results.length + ' scan results.\n\n' +
       'OK = Merge with existing data\nCancel = Replace all existing data'
     );
     const work = mode
       ? Promise.resolve()
-      : dbClear('history');
-    work.then(() => {
-      const puts = [];
-      history.forEach(h => { if (h && h.ts) puts.push(dbPut('history', h)); });
-      return Promise.all(puts);
-    }).then(() => {
-      alert('Import complete (' + history.length + ' history records).');
+      : Promise.all([dbClear('history'), dbClear('scans'), dbClear('scan_results')]);
+    work.then(() => Promise.all([
+      dbPutMany('history', history.filter(h => h && h.ts)),
+      dbPutMany('scans', scans.filter(s => s && s.id)),
+      // strip legacy rowid from v2 exports; composite [scan_id,seq] is the key now
+      dbPutMany('scan_results', results.filter(r => r && r.scan_id && typeof r.seq === 'number').map(r => { const { rowid, ...rest } = r; return rest; })),
+    ])).then(() => {
+      alert('Import complete (' + history.length + ' history, ' + scans.length + ' scans, ' + results.length + ' results).');
       if (typeof renderHistory === 'function') renderHistory();
+      if (typeof renderScans === 'function') renderScans();
     }).catch(err => alert('Import error: ' + err));
   };
   reader.readAsText(file);

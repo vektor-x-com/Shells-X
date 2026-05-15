@@ -125,6 +125,7 @@ CONFIG_PATH = os.path.join(SRC_DIR, 'config', 'defaults.json')
 # Module → file mapping
 MODULE_BACKEND = {
     'tunnel':      ['tunnel.php'],
+    'scanner':     ['scanner.php'],
     'files':       ['filebrowser.php', 'fileops.php'],
     'diagnostics': ['diagnostics.php'],
     'console':     ['eval.php'],
@@ -132,6 +133,7 @@ MODULE_BACKEND = {
 
 MODULE_JS = {
     'tunnel':      ['tunnel.js'],
+    'scanner':     ['scanner.js'],
     'files':       ['filebrowser.js'],
     'diagnostics': ['diagnostics.js'],
     'history':     ['history.js'],

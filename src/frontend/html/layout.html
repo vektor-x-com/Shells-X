@@ -8,6 +8,9 @@
       <li><a href="#" data-tab="tunnel"><span class="icon">&#x1F310;</span>Tunnel</a></li>
 <!-- /MODULE:tunnel -->
       <li><a href="#" data-tab="files"><span class="icon">&#x1F4C1;</span>Files</a></li>
+<!-- MODULE:scanner -->
+      <li><a href="#" data-tab="scanner"><span class="icon">&#x1F50E;</span>Scanner</a></li>
+<!-- /MODULE:scanner -->
 <!-- MODULE:diagnostics -->
       <li><a href="#" data-tab="diag"><span class="icon">&#x2699;</span>Diagnostics</a></li>
 <!-- /MODULE:diagnostics -->
@@ -150,6 +153,73 @@
           </div>
         </div>
       </div>
+
+<!-- MODULE:scanner -->
+      <!-- SCANNER TAB -->
+      <div class="tab-content" id="tab-scanner">
+        <div class="card">
+          <div class="card-header">
+            New Port Scan
+            <span style="font-size:11px;color:var(--muted)">runs in background — navigate freely</span>
+          </div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Targets (CIDR, IPs, hosts, a.b.c.x-y)</div>
+                <input class="form-control" id="scan-targets" placeholder="192.168.1.0/24, 10.0.0.1, host.local">
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+                  <span>Ports (csv + ranges)</span>
+                  <span style="font-size:10px;color:var(--muted)">presets (Nmap freq):</span>
+                </div>
+                <input class="form-control" id="scan-ports" placeholder="22,80,443,8000-8100" value="21,22,23,25,80,110,143,443,3306,3389,5432,5900,6379,8080,8443,9200,11211,27017">
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('tcp_small')" title="TCP·small (30 ports) — quick triage: Nmap top-20 + modern essentials (SSH-alt, Grafana, Postgres, WinRM, Redis, k8s API, ES, Mongo)">TCP·small</button>
+                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('tcp_common')" title="TCP·common (136 ports) — Nmap top-100 ∪ modern stack: containers, modern DBs/caches, brokers, observability, IoT">TCP·common</button>
+                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('tcp_all')" title="TCP·all (1-65535) — exhaustive, slow">TCP·all</button>
+                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('udp_small')" title="UDP·small (18 ports) — Nmap top-15 + IPsec NAT-T (4500), mDNS (5353), WireGuard (51820)">UDP·small</button>
+                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('udp_common')" title="UDP·common (51 ports) — Nmap top-50 + WireGuard">UDP·common</button>
+                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('udp_all')" title="UDP 1-1024 well-known range">UDP·all</button>
+                </div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Protocol</div>
+                <select class="form-control" id="scan-proto">
+                  <option value="tcp" selected>TCP</option>
+                  <option value="udp">UDP</option>
+                  <option value="both">TCP + UDP</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Concurrency</div>
+                <input class="form-control" id="scan-concurrency" type="number" min="1" max="512" value="64">
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Timeout (ms)</div>
+                <input class="form-control" id="scan-timeout" type="number" min="50" max="10000" value="800">
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Batch (ms)</div>
+                <input class="form-control" id="scan-batch" type="number" min="200" max="10000" value="1500">
+              </div>
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);margin-bottom:10px;cursor:pointer">
+              <input type="checkbox" id="scan-fingerprint" checked> Fingerprint open ports (banner grab + TLS cert)
+            </label>
+            <button class="btn btn-primary" id="scan-start-btn" onclick="scanStart()">&#x25B6; Start Scan</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">Scans</div>
+          <div class="card-body" id="scans-body" style="padding:8px">
+            <div style="color:var(--muted);font-size:13px;padding:12px">Loading...</div>
+          </div>
+        </div>
+      </div>
+<!-- /MODULE:scanner -->
 
 <!-- MODULE:diagnostics -->
       <!-- DIAGNOSTICS TAB -->

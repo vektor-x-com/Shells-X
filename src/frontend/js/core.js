@@ -42,5 +42,6 @@ document.querySelectorAll('.sidebar-nav a').forEach(a => {
     if (a.dataset.tab === 'files' && typeof browseDir === 'function') browseDir(document.getElementById('files-path-input').value);
     if (a.dataset.tab === 'diag' && typeof loadDiag === 'function') loadDiag();
     if (a.dataset.tab === 'scanner' && typeof renderScans === 'function') renderScans();
+    if (a.dataset.tab === 'tunnel' && typeof tunnelRefresh === 'function') tunnelRefresh();
   });
 });

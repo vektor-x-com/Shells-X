@@ -1,0 +1,24 @@
+services:
+  shell:
+    image: php:8.2-apache
+    ports:
+      - "8888:80"
+    volumes:
+      - ../dist:/var/www/html
+    environment:
+      - APACHE_LOG_DIR=/dev
+    restart: unless-stopped
+
+  # Target services for testing tunnel/scanner against internal network
+  target-web:
+    image: nginx:alpine
+    # No published ports — only reachable from the shell container
+  target-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: testdb
+    # No published ports
+  target-redis:
+    image: redis:alpine
+    # No published ports

@@ -95,14 +95,15 @@
       <div class="tab-content" id="tab-tunnel">
         <div class="card">
           <div class="card-header">
-            SOCKS5 Tunnel
+            Multiplexed Tunnel
             <div class="btn-group">
               <span id="tunnel-status" style="font-size:12px;color:var(--muted)">Idle</span>
+              <button class="btn btn-sm btn-secondary" onclick="tunnelRefresh()">&#x21BB; Refresh</button>
             </div>
           </div>
           <div class="card-body">
             <div style="margin-bottom:16px;color:var(--muted);font-size:13px">
-              HTTP tunnel endpoint for SOCKS5 proxying. Use with <span style="color:var(--yellow);font-family:monospace">neoreg.py</span> or compatible client.
+              Multiplexed HTTP tunnel with SOCKS5 proxy &amp; port forwarding. Use with <span style="color:var(--yellow);font-family:monospace">webtun.py</span> client.
             </div>
             <div style="margin-bottom:12px">
               <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Tunnel Endpoint URL:</div>
@@ -112,11 +113,18 @@
               </div>
             </div>
             <div style="margin-bottom:12px">
-              <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Client command:</div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Client commands:</div>
               <code id="tunnel-cmd" style="display:block;background:rgba(0,0,0,.3);padding:10px;border-radius:4px;font-size:12px;color:var(--green);word-break:break-all"></code>
+              <code id="tunnel-cmd-fwd" style="display:block;background:rgba(0,0,0,.3);padding:6px 10px;border-radius:4px;font-size:11px;color:var(--muted);margin-top:4px;word-break:break-all"></code>
             </div>
             <button class="btn btn-primary" onclick="tunnelCheck()">&#x1F50C; Test Connection</button>
             <div id="tunnel-test-result" style="margin-top:10px;font-size:12px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">Active Sessions</div>
+          <div class="card-body" id="tunnel-sessions">
+            <div style="color:var(--muted);font-size:13px">No active tunnel sessions. Start tunnel from Python client.</div>
           </div>
         </div>
         <div class="card">

@@ -1,10 +1,14 @@
 // ==================== FILE BROWSER ====================
 let currentDir = '/';
 
-document.getElementById('files-body').addEventListener('click', ev => {
-  const link = ev.target.closest('.dir-link');
-  if (link) { ev.preventDefault(); browseDir(link.dataset.path); }
-});
+(function() {
+  const body = document.getElementById('files-body');
+  if (!body) return;
+  body.addEventListener('click', ev => {
+    const link = ev.target.closest('.dir-link');
+    if (link) { ev.preventDefault(); browseDir(link.dataset.path); }
+  });
+})();
 
 function browseDir(path) {
   currentDir = path;

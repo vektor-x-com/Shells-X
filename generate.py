@@ -335,6 +335,13 @@ def build(args):
         if fname in excluded_backend:
             continue
         content = read_file(fpath)
+        # Backend source files start with their own `<?php` tag so editors
+        # highlight them correctly, but the template already opens PHP and
+        # injects {{BACKEND}} inside that block. Strip the per-file opener
+        # (and any closing `?>`) before concatenating, otherwise PHP sees
+        # nested `<?php` tokens and refuses to parse the assembled shell.
+        content = re.sub(r'^\s*<\?php\s*\n?', '', content)
+        content = re.sub(r'\s*\?>\s*$', '', content)
         backend_parts.append(content)
     backend = '\n'.join(backend_parts)
 
@@ -504,7 +511,7 @@ def main():
     parser.add_argument('--password', default='',
                         help='Set password protection (hash is embedded)')
     parser.add_argument('--tunnel', default='',
-                        help='Path to Neo-reGeorg generated tunnel.php (from neoreg.py -g)')
+                        help='Path to tunnel.php')
     parser.add_argument('--exclude', default='',
                         help='Comma-separated modules to exclude (e.g. tunnel,diagnostics)')
     parser.add_argument('--output', default='',

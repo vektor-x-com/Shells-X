@@ -76,31 +76,39 @@ function runShellCmd() {
     });
 }
 
-// Shell input key handling
-document.getElementById('os-shell-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    runShellCmd();
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (shellHistIdx > 0) {
-      shellHistIdx--;
-      e.target.value = shellHistory[shellHistIdx];
+// Shell input key handling. Guarded against missing element so a module-trim
+// build (or DOM-shape change in layout) can't take down the rest of the bundle
+// at script load time — that would leave `let _db = null` in db.js stuck in
+// TDZ for everything below, breaking the scanner / file browser / history.
+(function() {
+  const input = document.getElementById('os-shell-input');
+  if (!input) return;
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      runShellCmd();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (shellHistIdx > 0) {
+        shellHistIdx--;
+        e.target.value = shellHistory[shellHistIdx];
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (shellHistIdx < shellHistory.length - 1) {
+        shellHistIdx++;
+        e.target.value = shellHistory[shellHistIdx];
+      } else {
+        shellHistIdx = shellHistory.length;
+        e.target.value = '';
+      }
+    } else if (e.ctrlKey && e.key === 'l') {
+      e.preventDefault();
+      const out = document.getElementById('os-shell-output');
+      if (out) out.textContent = '';
     }
-  } else if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (shellHistIdx < shellHistory.length - 1) {
-      shellHistIdx++;
-      e.target.value = shellHistory[shellHistIdx];
-    } else {
-      shellHistIdx = shellHistory.length;
-      e.target.value = '';
-    }
-  } else if (e.ctrlKey && e.key === 'l') {
-    e.preventDefault();
-    document.getElementById('os-shell-output').textContent = '';
-  }
-});
+  });
+})();
 
-// Probe on load
-probeShell();
+// Probe on load — wrap so a malformed probe response can't abort the bundle.
+try { probeShell(); } catch (e) { console.warn('probeShell failed:', e); }

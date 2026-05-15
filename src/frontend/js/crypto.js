@@ -1,7 +1,16 @@
 // Crypto module — overrides fetchJSON with AES-256-CBC encryption when __BUILD.encrypted is set.
 // Key is SHA-256 of the password, stored in sessionStorage by the login page script.
+// Wrapped in try/catch: if `crypto.subtle` is unavailable (insecure HTTP context)
+// or anything else throws synchronously, swallow it so the rest of the bundle
+// (db.js, scanner.js, tunnel.js, ...) still loads instead of leaving `_db` in
+// TDZ and the page half-broken.
+try {
 (function() {
-  if (!__BUILD.encrypted) return;
+  if (typeof __BUILD === 'undefined' || !__BUILD.encrypted) return;
+  if (!window.crypto || !window.crypto.subtle) {
+    console.warn('crypto.subtle unavailable (insecure context) — encryption disabled');
+    return;
+  }
 
   let encKeyHex = sessionStorage.getItem('__enc_key');
   if (!encKeyHex) {
@@ -77,3 +86,6 @@
     }
   };
 })();
+} catch (e) {
+  console.error('crypto module init failed (continuing without encryption):', e);
+}

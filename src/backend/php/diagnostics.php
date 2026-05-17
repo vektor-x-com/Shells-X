@@ -91,13 +91,24 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
     }
 
     // --- Network: ARP table ---
+    // /proc/net/arp columns: IP Address, HW type, Flags, HW address, Mask, Device.
+    // Flags 0x0 = incomplete entry (kernel sent ARP request but got no reply) —
+    // the IP / MAC pair is garbage. We also drop the all-zeros MAC and the
+    // "<incomplete>" literal that older kernels emit, so the export doesn't
+    // create phantom Faraday hosts from failed ARP probes.
     $arpRaw = @file_get_contents('/proc/net/arp') ?: '';
     $arpHosts = [];
     foreach (array_slice(explode("\n", $arpRaw), 1) as $line) {
         $parts = preg_split('/\s+/', trim($line));
-        if (count($parts) >= 4 && $parts[0] !== '') {
-            $arpHosts[] = ['ip' => $parts[0], 'mac' => $parts[3], 'dev' => $parts[5] ?? ''];
-        }
+        if (count($parts) < 4 || $parts[0] === '')
+            continue;
+        $flags = $parts[2] ?? '';
+        $mac = $parts[3] ?? '';
+        if ($flags === '0x0')
+            continue;                       // incomplete ARP entry
+        if ($mac === '' || $mac === '<incomplete>' || $mac === '00:00:00:00:00:00')
+            continue;
+        $arpHosts[] = ['ip' => $parts[0], 'mac' => $mac, 'dev' => $parts[5] ?? ''];
     }
 
     // --- Network: open ports (TCP) with process correlation ---
@@ -121,32 +132,64 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
             }
         }
     }
-    $openPorts = [];
-    $portsSeen = [];
-    foreach (['/proc/net/tcp', '/proc/net/tcp6'] as $tcpFile) {
+    // Decode bind address + port from /proc/net/tcp lines for both IPv4 and IPv6.
+    // We expose the bind address so the export can distinguish a network-reachable
+    // listener (0.0.0.0:80) from a loopback-only one (127.0.0.1:9000) instead of
+    // dumping every PHP-FPM / Redis local socket into the Faraday Services view.
+    $openPortRaw = [];
+    foreach (['/proc/net/tcp' => 4, '/proc/net/tcp6' => 6] as $tcpFile => $ipv) {
         $tcpRaw = @file_get_contents($tcpFile) ?: '';
         foreach (array_slice(explode("\n", $tcpRaw), 1) as $line) {
             $parts = preg_split('/\s+/', trim($line));
-            if (count($parts) >= 10 && $parts[3] === '0A') {
-                $hex = explode(':', $parts[1]);
-                if (isset($hex[1])) {
-                    $port = hexdec($hex[1]);
-                    if (isset($portsSeen[$port]))
-                        continue;
-                    $portsSeen[$port] = true;
-                    $inode = $parts[9];
-                    $sockUid = isset($parts[7]) ? (int) $parts[7] : null;
-                    $pid = null;
-                    $cmd = null;
-                    if (isset($inodePid[$inode])) {
-                        $pid = $inodePid[$inode];
-                        $cmd = isset($pidCmd[$pid]) ? $pidCmd[$pid] : null;
-                    }
-                    $openPorts[] = ['port' => $port, 'pid' => $pid, 'cmd' => $cmd, 'uid' => $sockUid];
+            if (count($parts) < 10 || $parts[3] !== '0A')
+                continue;
+            $hex = explode(':', $parts[1]);
+            if (!isset($hex[1]))
+                continue;
+            $port = hexdec($hex[1]);
+            $addrHex = $hex[0];
+            $localAddr = '?';
+            if ($ipv === 4 && strlen($addrHex) === 8) {
+                $bin = @hex2bin($addrHex);
+                if ($bin !== false && strlen($bin) === 4) {
+                    $u = @unpack('V', $bin);
+                    if ($u) $localAddr = long2ip($u[1]);
+                }
+            } elseif ($ipv === 6 && strlen($addrHex) === 32) {
+                $bin = '';
+                for ($i = 0; $i < 4; $i++) {
+                    $grp = @hex2bin(substr($addrHex, $i * 8, 8));
+                    if ($grp === false) { $bin = false; break; }
+                    $bin .= strrev($grp);
+                }
+                if ($bin !== false && strlen($bin) === 16) {
+                    $localAddr = @inet_ntop($bin) ?: '?';
                 }
             }
+            $inode = $parts[9];
+            $sockUid = isset($parts[7]) ? (int) $parts[7] : null;
+            $pid = isset($inodePid[$inode]) ? $inodePid[$inode] : null;
+            $cmd = ($pid !== null && isset($pidCmd[$pid])) ? $pidCmd[$pid] : null;
+            // Loopback = bound only to localhost interface (not 0.0.0.0 which
+            // listens on ALL interfaces). 0.0.0.0 / :: are network-reachable.
+            // Also catch IPv4-mapped IPv6 loopback (::ffff:127.x.x.x) which some
+            // stacks emit when a service binds to 127.0.0.1 via the IPv6 socket.
+            $loopback = (bool) preg_match('/^127\./', $localAddr)
+                || $localAddr === '::1'
+                || (bool) preg_match('/^::ffff:127\./i', $localAddr);
+            $openPortRaw[] = ['port' => $port, 'proto' => $ipv === 6 ? 'tcp6' : 'tcp', 'local_addr' => $localAddr, 'loopback' => $loopback, 'pid' => $pid, 'cmd' => $cmd, 'uid' => $sockUid];
         }
     }
+    // Dedup per port preferring network-reachable bindings over loopback-only.
+    // Previously we kept whichever entry came first, which silently dropped a
+    // 0.0.0.0:9000 binding if 127.0.0.1:9000 happened to appear earlier in tcp6.
+    $portsByNum = [];
+    foreach ($openPortRaw as $e) {
+        if (!isset($portsByNum[$e['port']]) || ($portsByNum[$e['port']]['loopback'] && !$e['loopback'])) {
+            $portsByNum[$e['port']] = $e;
+        }
+    }
+    $openPorts = array_values($portsByNum);
     usort($openPorts, function ($a, $b) {
         return $a['port'] - $b['port']; });
 
@@ -884,10 +927,17 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
     }
 
     // --- Assemble response ---
+    // target_ip / target_host / webshell_path are needed by the Faraday export
+    // module so it can attribute findings to a canonical Host entity even when
+    // the operator hasn't manually configured one. Cheap to compute; useful
+    // independently for the diagnostics UI too.
     $__diag = [
         'php_version' => phpversion(),
         'os' => php_uname(),
         'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'unknown',
+        'target_ip' => $_SERVER['SERVER_ADDR'] ?? '',
+        'target_host' => $_SERVER['SERVER_NAME'] ?? ($_SERVER['HTTP_HOST'] ?? ''),
+        'webshell_path' => $_SERVER['SCRIPT_FILENAME'] ?? __FILE__,
         'disable_functions' => ini_get('disable_functions') ?: 'none',
         'open_basedir' => ini_get('open_basedir') ?: 'none',
         'max_execution_time' => ini_get('max_execution_time') ?: '0',

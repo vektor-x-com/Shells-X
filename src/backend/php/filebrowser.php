@@ -15,8 +15,13 @@ if (isset($_POST['action']) && $_POST['action'] === 'ls') {
         $broken = ($real === false);
         $stat = $broken ? @lstat($full) : @stat($full);
         $isDir = $broken ? false : is_dir($real);
-        $owner = '?';
-        $group = '?';
+        // Fall back to the numeric uid/gid when posix_getpwuid/getgrgid
+        // can't resolve a name — common inside containers where host-mounted
+        // files keep their host uid (e.g. 1000) which isn't in the container's
+        // /etc/passwd. "1000:1000" is far more useful than "?:?" for operator
+        // context.
+        $owner = $stat ? (string) $stat['uid'] : '?';
+        $group = $stat ? (string) $stat['gid'] : '?';
         if (function_exists('posix_getpwuid') && $stat) {
             $info = @posix_getpwuid($stat['uid']);
             if ($info)

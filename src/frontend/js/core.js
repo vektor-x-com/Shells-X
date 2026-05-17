@@ -30,6 +30,26 @@ function clipCopy(text) {
   return Promise.resolve();
 }
 
+// ==================== CLICK TO COPY ====================
+// Any element with the .copyable class becomes click-to-copy. By default
+// copies its own textContent; pass data-copy="..." to copy custom text.
+// Briefly swaps text to "✓ copied" + adds .copied class for feedback.
+document.addEventListener('click', e => {
+  const el = e.target.closest('.copyable');
+  if (!el) return;
+  const text = (el.dataset.copy && el.dataset.copy !== 'self') ? el.dataset.copy : el.textContent;
+  if (!text || el.classList.contains('copied')) return;  // ignore re-clicks during feedback window
+  clipCopy(text).then(() => {
+    const orig = el.textContent;
+    el.classList.add('copied');
+    el.textContent = '✓ copied';
+    setTimeout(() => {
+      el.classList.remove('copied');
+      el.textContent = orig;
+    }, 900);
+  });
+});
+
 // ==================== TAB NAVIGATION ====================
 document.querySelectorAll('.sidebar-nav a').forEach(a => {
   a.addEventListener('click', e => {

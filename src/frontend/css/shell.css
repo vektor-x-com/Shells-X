@@ -5,100 +5,375 @@
     --purple: #bc8cff;
     --accent-hover: #79b8ff;
     --accent-10: rgba(88,166,255,.1);
+    /* Operator-HUD type stack: prefers distinctive developer monos when present,
+       falls back gracefully through OS monos. No external fonts (would leak
+       operator IP and break offline). */
+    --font-mono: 'JetBrains Mono','Berkeley Mono','Fira Code','IBM Plex Mono','Cascadia Code','SF Mono',Menlo,Consolas,ui-monospace,monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', monospace; font-size: 14px; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-feature-settings: "ss01","cv02","cv09","tnum","calt";
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Hairline grid backdrop — felt rather than seen. */
+    background-image:
+      linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px);
+    background-size: 32px 32px, 32px 32px;
+  }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
 
+  ::selection { background: var(--accent); color: #000; }
+  *:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+  /* Custom scrollbars — slim, theme-matched, never chrome-default-blue. */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 0; }
+  ::-webkit-scrollbar-thumb:hover { background: #4a525c; }
+  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
   .layout { display: flex; height: 100vh; overflow: hidden; }
-  .sidebar { width: 220px; min-width: 220px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-  .sidebar-header { padding: 16px; font-size: 13px; font-weight: 600; color: var(--accent); border-bottom: 1px solid var(--border); letter-spacing: 1px; }
-  .sidebar-nav { list-style: none; padding: 8px 0; }
-  .sidebar-nav li a { display: block; padding: 8px 16px; color: var(--muted); font-size: 13px; transition: all .15s; }
-  .sidebar-nav li a:hover, .sidebar-nav li a.active { color: var(--text); background: var(--accent-10); border-left: 2px solid var(--accent); text-decoration: none; }
-  .sidebar-nav li a .icon { margin-right: 8px; }
+
+  /* Sidebar — instrument panel, not nav drawer. */
+  .sidebar { width: 220px; min-width: 220px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: relative; }
+  .sidebar::after { content: ''; position: absolute; right: -1px; top: 0; bottom: 0; width: 1px; background: linear-gradient(transparent 0%, var(--accent) 35%, var(--accent) 65%, transparent 100%); opacity: .25; pointer-events: none; }
+  .sidebar-header { padding: 14px 16px; font-size: 11px; font-weight: 600; color: var(--accent); border-bottom: 1px solid var(--border); letter-spacing: .14em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .sidebar-header::before { content: '▸'; opacity: .6; }
+  .sidebar-nav { list-style: none; padding: 6px 0; }
+  .sidebar-nav li a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 16px 6px 22px; color: var(--muted);
+    font-size: 12px; letter-spacing: .04em; text-transform: lowercase;
+    position: relative; transition: color .12s, background .12s;
+  }
+  .sidebar-nav li a::before {
+    content: ''; position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    width: 4px; height: 4px; background: transparent; transition: background .12s;
+  }
+  .sidebar-nav li a:hover { color: var(--text); background: rgba(255,255,255,.02); text-decoration: none; }
+  .sidebar-nav li a:hover::before { background: var(--muted); }
+  .sidebar-nav li a.active { color: var(--accent); background: var(--accent-10); }
+  .sidebar-nav li a.active::before { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .sidebar-nav li a .icon { opacity: .8; }
+
+  /* Solid SVG icon — uses currentColor so it inherits the surrounding text
+     color, scales with font-size via em-units. Replaces the colored emoji
+     glyphs (🐊 💻 📁 …) that broke the monochrome HUD aesthetic on platforms
+     that render those via the OS emoji font. */
+  .icon {
+    display: inline-block;
+    width: 14px; height: 14px;
+    fill: currentColor;
+    flex-shrink: 0;
+    vertical-align: -3px;
+  }
+  .btn .icon { width: 12px; height: 12px; vertical-align: -2px; margin-right: 3px; opacity: .9; }
+  .sidebar-header .icon { width: 14px; height: 14px; vertical-align: -2px; }
+  /* Inline icons within JS-emitted scanner / file rows */
+  .row-icon { width: 13px; height: 13px; fill: currentColor; vertical-align: -2px; margin-right: 4px; flex-shrink: 0; }
 
   .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
-  .topbar { padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
-  .topbar .path { font-size: 12px; color: var(--muted); flex: 1; }
-  .content { padding: 20px; flex: 1; }
+  .topbar {
+    padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; font-size: 11px;
+    letter-spacing: .04em;
+  }
+  .topbar .path { color: var(--muted); flex: 1; }
+  .topbar .path::before { content: '$ '; color: var(--accent); opacity: .7; }
+  .content { padding: 18px 20px; flex: 1; }
 
   .tab-content { display: none; }
-  .tab-content.active { display: block; }
+  .tab-content.active { display: block; animation: hud-reveal .18s ease-out; }
+  @keyframes hud-reveal {
+    from { opacity: 0; transform: translateY(2px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
-  /* Cards */
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; }
-  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--accent); display: flex; align-items: center; justify-content: space-between; }
-  .card-body { padding: 16px; }
+  /* Cards — sharper corners, hairline accent strip on header. */
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 3px; margin-bottom: 14px;
+    position: relative;
+  }
+  .card::before {
+    content: ''; position: absolute; left: -1px; top: -1px; bottom: -1px;
+    width: 2px; background: transparent; transition: background .15s;
+  }
+  .card:hover::before { background: var(--accent); opacity: .35; }
+  .card-header {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 600; color: var(--accent);
+    display: flex; align-items: center; justify-content: space-between;
+    letter-spacing: .12em; text-transform: uppercase;
+  }
+  .card-body { padding: 14px; }
 
-  /* Console */
-  #console-input { width: 100%; background: #0d1117; border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: monospace; font-size: 13px; padding: 10px; resize: vertical; min-height: 100px; outline: none; }
-  #console-input:focus { border-color: var(--accent); }
-  .console-output { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; color: var(--green); }
+  /* Console — CRT vibes: subtle scanlines + glow on green.
+     Note: #console-input styling now flows from `.terminal-input` (composer
+     uses the same shape as OS Shell). Kept as a specificity override only
+     in case other styles target it directly. */
+
+  /* Unified terminal stream — shared by PHP Console and OS Shell.
+     Append-only scrollback. Each entry is a <div> tagged with
+     .stream-cmd / .stream-out / .stream-err so commands, output, and
+     errors get distinct color while sharing the monospace mass. */
+  .terminal-stream {
+    background: #0a0d12;
+    padding: 10px 12px;
+    font-family: var(--font-mono); font-size: 12px;
+    white-space: pre-wrap; word-break: break-all;
+    line-height: 1.55;
+    overflow-y: auto;
+    background-image: linear-gradient(transparent 50%, rgba(255,255,255,.018) 50%);
+    background-size: 100% 2px;
+    color: var(--green);
+  }
+  .terminal-stream:empty::before {
+    content: '// stream empty — run something';
+    color: var(--muted); font-style: italic;
+  }
+  .terminal-stream .stream-cmd {
+    color: var(--accent);
+    text-shadow: 0 0 1px rgba(88,166,255,.35);
+  }
+  .terminal-stream .stream-out {
+    color: var(--green);
+    text-shadow: 0 0 1px rgba(63,185,80,.45);
+  }
+  .terminal-stream .stream-err {
+    color: var(--red);
+    text-shadow: 0 0 1px rgba(248,81,73,.45);
+  }
+  .terminal-stream .stream-sep {
+    border-bottom: 1px dashed rgba(255,255,255,.05);
+    margin: 6px 0 8px;
+  }
+  /* Backward-compat alias — older builds referenced .console-output. */
+  .console-output { /* kept as a no-op alias so older builds still render */ }
+
+  /* Composer = the area below the stream where you type the next thing.
+     Same layout for PHP Console and OS Shell so they're visually identical:
+     prompt prefix on the left, resizable textarea filling the rest. */
+  .terminal-composer {
+    display: flex; align-items: flex-start;
+    gap: 8px; padding: 8px 12px;
+    background: #0a0d12;
+    border-top: 1px solid var(--border);
+  }
+  .terminal-prefix {
+    color: var(--accent); font-family: var(--font-mono); font-size: 12px;
+    white-space: nowrap; padding-top: 5px;
+    letter-spacing: 0;
+  }
+  .terminal-input {
+    flex: 1; border: none; background: transparent;
+    color: var(--green); font-family: var(--font-mono); font-size: 12.5px;
+    line-height: 1.5; padding: 4px 0; outline: none;
+    resize: vertical; min-height: 24px; max-height: 240px;
+    overflow-y: auto;
+  }
+  .terminal-input::placeholder { color: #525c66; }
   .history-item { border-bottom: 1px solid var(--border); padding: 8px 0; }
-  .history-cmd { color: var(--accent); font-size: 12px; font-family: monospace; }
-  .history-out { color: var(--muted); font-size: 12px; font-family: monospace; white-space: pre-wrap; max-height: 150px; overflow-y: auto; }
+  .history-item:last-child { border-bottom: none; }
+  .history-cmd { color: var(--accent); font-size: 12px; }
+  .history-cmd::before { content: '> '; opacity: .55; }
+  .history-out { color: var(--muted); font-size: 12px; white-space: pre-wrap; max-height: 150px; overflow-y: auto; padding-left: 10px; border-left: 1px solid var(--border); margin-top: 4px; }
 
-  /* Buttons */
-  .btn { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
-  .btn-primary { background: var(--accent); color: #000; }
-  .btn-primary:hover { background: var(--accent-hover); }
-  .btn-secondary { background: var(--border); color: var(--text); }
-  .btn-secondary:hover { background: #3d444d; }
-  .btn-danger { background: var(--red); color: #fff; }
-  .btn-success { background: var(--green); color: #000; }
-  .btn-sm { padding: 4px 10px; font-size: 12px; }
-  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* Buttons — sharper, with crisp inset highlight on press. */
+  .btn {
+    padding: 6px 12px; border-radius: 3px; border: 1px solid transparent;
+    cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 500;
+    letter-spacing: .03em;
+    transition: background .12s, border-color .12s, transform .06s;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-secondary { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn-secondary:hover { background: rgba(255,255,255,.04); border-color: #4a525c; }
+  .btn-danger { background: transparent; color: var(--red); border-color: rgba(248,81,73,.5); }
+  .btn-danger:hover { background: rgba(248,81,73,.12); border-color: var(--red); }
+  .btn-sm { padding: 3px 9px; font-size: 11px; }
+  .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
 
   /* Forms */
-  .form-group { display: flex; flex-direction: column; gap: 4px; }
-  .form-group label { font-size: 12px; color: var(--muted); }
-  .form-control { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 10px; font-size: 13px; outline: none; }
-  .form-control:focus { border-color: var(--accent); }
+  .form-control {
+    background: #0a0d12; border: 1px solid var(--border); border-radius: 3px;
+    color: var(--text); padding: 6px 10px; font-family: inherit; font-size: 12.5px;
+    outline: none; transition: border-color .12s, box-shadow .12s;
+  }
+  .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-10); }
+  .form-control::placeholder { color: #525c66; }
 
   /* Diagnostics */
-  .diag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .diag-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .diag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .diag-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed rgba(255,255,255,.05); font-size: 12.5px; gap: 12px; }
   .diag-item:last-child { border-bottom: none; }
-  .diag-label { color: var(--muted); }
-  .diag-value { color: var(--text); font-family: monospace; }
-  .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-  .badge-ok { background: rgba(63,185,80,.2); color: var(--green); }
-  .badge-no { background: rgba(248,81,73,.2); color: var(--red); }
-  .badge-warn { background: rgba(210,153,34,.15); color: var(--yellow); }
+  .diag-label { color: var(--muted); white-space: nowrap; }
+  .diag-value { color: var(--text); text-align: right; word-break: break-all; }
 
-  /* File browser */
-  .file-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .file-table th { padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 12px; }
-  .file-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); }
-  .file-table tr:hover td { background: var(--accent-10); }
+  /* Badges — bracket-style boxes, never pills. */
+  .badge {
+    display: inline-block; padding: 1px 6px;
+    font-family: inherit; font-size: 10.5px; font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase;
+    border-radius: 0; border: 1px solid;
+  }
+  .badge-ok   { color: var(--green);  border-color: rgba(63,185,80,.4);  background: rgba(63,185,80,.08); }
+  .badge-no   { color: var(--red);    border-color: rgba(248,81,73,.4);  background: rgba(248,81,73,.08); }
+  .badge-warn { color: var(--yellow); border-color: rgba(210,153,34,.4); background: rgba(210,153,34,.08); }
+
+  /* File browser — tighter density, alt rows for scanability. */
+  .file-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .file-table th {
+    padding: 6px 12px; text-align: left;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted); font-weight: 500; font-size: 10.5px;
+    letter-spacing: .1em; text-transform: uppercase;
+    background: rgba(255,255,255,.01);
+  }
+  .file-table td { padding: 5px 12px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: middle; }
+  .file-table tbody tr:nth-child(even) td { background: rgba(255,255,255,.012); }
+  .file-table tbody tr:hover td { background: var(--accent-10); }
+  .file-table tr:last-child td { border-bottom: none; }
   .file-dir { color: var(--yellow); }
   .file-name { color: var(--text); }
-  .perm { font-family: monospace; color: var(--purple); font-size: 12px; }
+  .perm { color: var(--purple); font-size: 11.5px; }
 
-  /* Upload */
-  .upload-area { border: 2px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; color: var(--muted); font-size: 13px; }
-
-  /* Alert */
-  .alert { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
-  .alert-success { background: rgba(63,185,80,.15); border: 1px solid var(--green); color: var(--green); }
-  .alert-error { background: rgba(248,81,73,.15); border: 1px solid var(--red); color: var(--red); }
-
-  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  /* Spinner — square 1px frame rotating, more terminal than browser-spinner. */
+  .spinner {
+    display: inline-block; width: 10px; height: 10px;
+    border: 1px solid var(--border); border-top-color: var(--accent);
+    border-radius: 0; animation: spin .7s linear infinite;
+    vertical-align: -1px; margin-right: 6px;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .copy-wrap { position: relative; }
-  .copy-btn { position: absolute; top: 8px; right: 8px; }
+  /* Pulsing live-indicator dot — used for active scans / running tunnels. */
+  .live-dot {
+    display: inline-block; width: 7px; height: 7px;
+    background: var(--green); border-radius: 50%;
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 1.4s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1;   transform: scale(1); }
+    50%      { opacity: .35; transform: scale(.85); }
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
 
   /* OS Shell */
+  #os-shell-input { font-family: var(--font-mono); }
   #os-shell-input:focus { outline: none; }
-  #os-shell-output:empty::before { content: 'Probing exec functions...'; color: var(--muted); font-size: 12px; }
+  #os-shell-output:empty::before { content: '// probing exec functions...'; color: var(--muted); font-size: 12px; }
 
-  /* Login */
-  .login-wrap { display:flex; align-items:center; justify-content:center; height:100vh; background:var(--bg); }
-  .login-box { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:32px; width:340px; }
-  .login-box h2 { color:var(--accent); font-size:16px; margin-bottom:16px; text-align:center; letter-spacing:1px; }
-  .login-box input { width:100%; margin-bottom:12px; }
-  .login-box .btn { width:100%; }
-  .login-error { color:var(--red); font-size:12px; text-align:center; margin-bottom:8px; }
+  /* Stepped progress bar — instrument readout, not a browser progress element. */
+  .hud-bar {
+    height: 8px; border: 1px solid var(--border); background: #0a0d12;
+    overflow: hidden; position: relative;
+  }
+  .hud-bar > .fill {
+    height: 100%; background:
+      repeating-linear-gradient(90deg,
+        var(--accent) 0 6px,
+        rgba(0,0,0,.35) 6px 7px);
+    transition: width .35s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 0 6px var(--accent-10);
+  }
+
+  /* Files toolbar — header doubles as the path bar AND upload control.
+     Wraps to a second line on narrow viewports rather than overflowing. */
+  .card-header.files-toolbar {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px; row-gap: 6px;
+    justify-content: flex-start;
+  }
+  .files-toolbar-title { letter-spacing: .12em; text-transform: uppercase; }
+  .files-path { flex: 1 1 240px; min-width: 180px; max-width: 360px; font-size: 12px; }
+  .files-toolbar-sep {
+    width: 1px; height: 18px;
+    background: var(--border);
+    margin: 0 2px;
+  }
+  .files-upload-input { font-size: 11px; color: var(--text); max-width: 200px; }
+  .files-upload-status {
+    font-size: 11px; color: var(--muted); flex: 1 1 100%;
+    padding-left: 2px;
+    text-transform: none;       /* paths contain case, don't shout them */
+    letter-spacing: 0;
+    word-break: break-all;
+  }
+  .files-upload-status:empty { display: none; }
+
+  /* Split button — primary action joined with a dropdown chevron. Used in
+     the sidebar for the Faraday export button + its settings panel. */
+  .split-btn { display: flex; width: 100%; }
+  .split-btn-main {
+    flex: 1;
+    border-top-right-radius: 0; border-bottom-right-radius: 0;
+    border-right: 1px solid rgba(0,0,0,.25);
+  }
+  .split-btn-toggle {
+    width: 28px; min-width: 28px;
+    padding-left: 0; padding-right: 0;
+    border-top-left-radius: 0; border-bottom-left-radius: 0;
+  }
+  .split-btn-toggle .split-btn-chev {
+    display: inline-block; transition: transform .15s ease-out;
+  }
+  .split-btn-toggle[aria-expanded="true"] .split-btn-chev {
+    transform: rotate(180deg);
+  }
+
+  /* Faraday export settings panel — collapses under the split button. */
+  .faraday-settings-panel {
+    margin-top: 6px; padding: 10px;
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--border); border-radius: 3px;
+    display: flex; flex-direction: column; gap: 8px;
+    animation: faraday-slide .12s ease-out;
+  }
+  .faraday-settings-panel[hidden] { display: none; }
+  @keyframes faraday-slide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .faraday-field { display: flex; flex-direction: column; gap: 3px; font-size: 10.5px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .faraday-field input { font-size: 12px; padding: 5px 8px; }
+  .faraday-actions { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .faraday-actions #faraday-save-status { font-size: 11px; color: var(--muted); }
+  .faraday-help { font-size: 10px; color: var(--muted); line-height: 1.45; word-break: break-word; }
+  .faraday-help code { color: var(--accent); font-size: 10px; padding: 1px 4px; background: transparent; }
+
+  /* Generic "click to copy" affordance — any element with the .copyable
+     class (auto-bound in core.js) gets hover highlight + click-to-copy +
+     brief "✓ copied" feedback. Pair with data-copy="self" to copy the
+     element's own text, or data-copy="custom string" to copy something else. */
+  .copyable {
+    cursor: pointer;
+    border-radius: 2px;
+    padding: 1px 4px;
+    margin: -1px -4px;
+    transition: background .12s, color .12s;
+  }
+  .copyable:hover {
+    background: var(--accent-10);
+    color: var(--accent);
+  }
+  .copyable.copied {
+    background: rgba(63,185,80,.18);
+    color: var(--green);
+  }
+
+  /* .login-* lives in generate.py's auth-mode injected <style> (lines 253-258).
+     Not duplicated here to avoid drift between the two definitions. */

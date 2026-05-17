@@ -481,6 +481,14 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
     $action = $_POST['action'];
 
     if ($action === 'scan_start') {
+        // Probe the one function the entire scanner depends on. Without it
+        // every poll silently produces "filtered" results and the operator
+        // wastes time on what looks like a fully-firewalled target. Bail
+        // up front with a clear error instead.
+        if (!function_exists('stream_socket_client') || !function_exists('stream_select')) {
+            echo json_encode(['error' => 'Scanner unavailable: stream_socket_client / stream_select disabled in PHP. Check disable_functions.']);
+            exit;
+        }
         $targetsStr = trim($_POST['targets'] ?? '');
         $portsStr = trim($_POST['ports'] ?? '');
 

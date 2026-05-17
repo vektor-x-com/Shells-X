@@ -3,29 +3,54 @@
   <div class="sidebar">
     <div class="sidebar-header">{{SHELL_TITLE}}</div>
     <ul class="sidebar-nav">
-      <li><a href="#" class="active" data-tab="console"><span class="icon">&#x1F4BB;</span>Console</a></li>
+      <li><a href="#" class="active" data-tab="console"><svg class="icon" viewBox="0 0 16 16"><path d="M1 2v12h14V2zm12 2v8H3V4zM5 6l1-1 3 3-3 3-1-1 2-2zm3 4h4v1H8z"/></svg>Console</a></li>
 <!-- MODULE:tunnel -->
-      <li><a href="#" data-tab="tunnel"><span class="icon">&#x1F310;</span>Tunnel</a></li>
+      <li><a href="#" data-tab="tunnel"><svg class="icon" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 2c.7 0 1.5.5 2.2 1.3L8 5 5.8 3.3C6.5 2.5 7.3 2 8 2zM4.4 4.5L7 6.5v2L4 11l-.5.5C2.6 10.5 2 9.3 2 8c0-1.3.5-2.5 1.4-3.5zM12.6 4.5C13.5 5.5 14 6.7 14 8c0 1.3-.5 2.5-1.4 3.5L12 11 9 8.5v-2zM7 10.5l1 1 1-1 2 2c-.7.5-1.8 1-3 1s-2.3-.5-3-1z"/></svg>Tunnel</a></li>
 <!-- /MODULE:tunnel -->
-      <li><a href="#" data-tab="files"><span class="icon">&#x1F4C1;</span>Files</a></li>
+      <li><a href="#" data-tab="files"><svg class="icon" viewBox="0 0 16 16"><path d="M1 3v10h14V5H7L5 3z"/></svg>Files</a></li>
 <!-- MODULE:scanner -->
-      <li><a href="#" data-tab="scanner"><span class="icon">&#x1F50E;</span>Scanner</a></li>
+      <li><a href="#" data-tab="scanner"><svg class="icon" viewBox="0 0 16 16"><path d="M6.5 1a5.5 5.5 0 014.4 8.8l3.8 3.8-1.4 1.4-3.8-3.8A5.5 5.5 0 116.5 1zm0 2a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"/></svg>Scanner</a></li>
 <!-- /MODULE:scanner -->
 <!-- MODULE:diagnostics -->
-      <li><a href="#" data-tab="diag"><span class="icon">&#x2699;</span>Diagnostics</a></li>
+      <li><a href="#" data-tab="diag"><svg class="icon" viewBox="0 0 16 16"><path d="M7 0v2.2A6 6 0 005.1 3l-1.6-1.6-1.4 1.4 1.6 1.6A6 6 0 002.2 6H0v2h2.2c.2.7.4 1.3.8 1.9L1.4 11.5l1.4 1.4 1.6-1.6c.6.4 1.2.6 1.9.8V14h2v-2.2c.7-.2 1.3-.4 1.9-.8l1.6 1.6 1.4-1.4-1.6-1.6c.4-.6.6-1.2.8-1.9H16V6h-2.2a6 6 0 00-.8-1.9l1.6-1.6-1.4-1.4-1.6 1.6A6 6 0 0010 2.2V0zm1 5a3 3 0 110 6 3 3 0 010-6z"/></svg>Diagnostics</a></li>
 <!-- /MODULE:diagnostics -->
 <!-- MODULE:history -->
-      <li><a href="#" data-tab="history"><span class="icon">&#x1F4DC;</span>History</a></li>
+      <li><a href="#" data-tab="history"><svg class="icon" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 2a6 6 0 110 12A6 6 0 018 2zm-1 2v5l4 2.5.8-1.4L8.5 8.2V4z"/></svg>History</a></li>
 <!-- /MODULE:history -->
     </ul>
     <div style="margin-top:auto;padding:12px;border-top:1px solid var(--border)">
       <div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:.5px">DATABASE</div>
-      <button class="btn btn-sm btn-secondary" onclick="exportDB()" style="width:100%;margin-bottom:6px">&#x2B07; Export DB</button>
-      <button class="btn btn-sm btn-secondary" onclick="document.getElementById('db-import-file').click()" style="width:100%">&#x2B06; Import DB</button>
+      <button class="btn btn-sm btn-secondary" onclick="exportDB()" style="width:100%;margin-bottom:6px"><svg class="icon" viewBox="0 0 16 16"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Export DB</button>
+      <button class="btn btn-sm btn-secondary" onclick="document.getElementById('db-import-file').click()" style="width:100%"><svg class="icon" viewBox="0 0 16 16"><path d="M8 1L3.1 5.9l1.4 1.4L7 4.8V12h2V4.8l2.5 2.5 1.4-1.4zM2 13v2h12v-2z"/></svg> Import DB</button>
       <input type="file" id="db-import-file" accept=".json" style="display:none" onchange="importDB(this)">
+<!-- MODULE:faraday -->
+      <div class="faraday-split-wrap" style="margin-top:6px">
+        <div class="split-btn" role="group">
+          <button class="btn btn-sm btn-secondary split-btn-main" onclick="faradayExportAll()" title="Export all scans + last diagnostics blob as a faraday_json file">&#x2191; Faraday export</button>
+          <button class="btn btn-sm btn-secondary split-btn-toggle" onclick="faradayToggleSettings()" aria-expanded="false" aria-controls="faraday-settings-panel" title="Export settings"><span class="split-btn-chev">&#x25BE;</span></button>
+        </div>
+        <div id="faraday-settings-panel" class="faraday-settings-panel" hidden>
+          <label class="faraday-field">
+            <span>Workspace</span>
+            <input class="form-control" id="faraday-workspace" placeholder="acme-2026q2">
+          </label>
+          <label class="faraday-field">
+            <span>Operator tag</span>
+            <input class="form-control" id="faraday-user" placeholder="operator">
+          </label>
+          <div class="faraday-actions">
+            <button class="btn btn-sm btn-primary" onclick="faradaySaveSettings()">Save</button>
+            <span id="faraday-save-status"></span>
+          </div>
+          <div class="faraday-help">
+            Upload with <code class="copyable" data-copy="self" title="Click to copy">faraday-cli tool report &lt;file&gt; --plugin-id Faraday_JSON</code>
+          </div>
+        </div>
+      </div>
+<!-- /MODULE:faraday -->
     </div>
     <div style="padding:8px 12px;border-top:1px solid var(--border)">
-      <button class="btn btn-sm btn-danger" onclick="selfDestruct()" style="width:100%">&#x1F4A3; Self-Destruct</button>
+      <button class="btn btn-sm btn-danger" onclick="selfDestruct()" style="width:100%"><svg class="icon" viewBox="0 0 16 16"><path d="M11 1l-.7.7 1 1L10 4.1A5 5 0 105 9a5 5 0 005 5 5 5 0 005-5 5 5 0 00-2-4l1.3-1.3 1 1L15 4z"/></svg> Self-Destruct</button>
     </div>
   </div>
 
@@ -44,47 +69,41 @@
         <div class="card">
           <div class="card-header">
             PHP Console
-            <div class="btn-group">
-              <button class="btn btn-sm btn-secondary" onclick="insertCode(&quot;print_r(scandir('.'));&quot;)">scandir</button>
-              <button class="btn btn-sm btn-secondary" onclick="insertCode(&quot;echo file_get_contents('/etc/passwd');&quot;)">/etc/passwd</button>
-              <button class="btn btn-sm btn-secondary" onclick="insertCode(&quot;phpinfo();&quot;)">phpinfo</button>
-              <button class="btn btn-sm btn-secondary" onclick="insertCode(&quot;echo php_uname();&quot;)">uname</button>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div id="snippet-buttons" class="btn-group"></div>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-secondary" onclick="streamClear('console-output')">Clear</button>
+                <button class="btn btn-sm btn-secondary" onclick="streamCopy('console-output')"><svg class="icon" viewBox="0 0 16 16"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
+                <button class="btn btn-sm btn-secondary" onclick="streamDownload('console-output','php-console')"><svg class="icon" viewBox="0 0 16 16"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Download</button>
+              </div>
             </div>
           </div>
-          <div class="card-body">
-            <textarea id="console-input" placeholder="Enter PHP code..."></textarea>
-            <div class="btn-group" style="margin-top:10px">
-              <button class="btn btn-primary" onclick="runCode()">&#x25B6; Execute</button>
-              <button class="btn btn-secondary" onclick="document.getElementById('console-input').value=''">Clear</button>
+          <div class="card-body" style="padding:0">
+            <div class="terminal-stream" id="console-output" style="min-height:240px;max-height:480px"></div>
+            <div class="terminal-composer">
+              <span class="terminal-prefix">php&gt;</span>
+              <textarea id="console-input" class="terminal-input" placeholder="PHP code  ·  Enter runs  ·  Shift+Enter newline  ·  Ctrl+↑/↓ history" spellcheck="false"></textarea>
             </div>
-          </div>
-        </div>
-        <div class="card" id="output-card" style="display:none">
-          <div class="card-header">
-            Output
-            <div class="btn-group">
-              <button class="btn btn-sm btn-secondary" onclick="copyOutput()">&#x1F4CB; Copy</button>
-              <button class="btn btn-sm btn-secondary" onclick="downloadOutput()">&#x2B07; Download</button>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="console-output" id="console-output"></div>
           </div>
         </div>
         <!-- OS Shell -->
         <div class="card" id="os-shell-card" style="display:none">
           <div class="card-header">
             OS Shell
-            <div class="btn-group">
+            <div style="display:flex;align-items:center;gap:8px">
               <span id="os-shell-status"></span>
-              <button class="btn btn-sm btn-secondary" onclick="document.getElementById('os-shell-output').textContent=''">Clear</button>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-secondary" onclick="streamClear('os-shell-output')">Clear</button>
+                <button class="btn btn-sm btn-secondary" onclick="streamCopy('os-shell-output')"><svg class="icon" viewBox="0 0 16 16"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
+                <button class="btn btn-sm btn-secondary" onclick="streamDownload('os-shell-output','os-shell')"><svg class="icon" viewBox="0 0 16 16"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Download</button>
+              </div>
             </div>
           </div>
           <div class="card-body" style="padding:0">
-            <div class="console-output" id="os-shell-output" style="min-height:200px;max-height:400px;border:none;border-radius:0;margin:0"></div>
-            <div style="display:flex;align-items:center;border-top:1px solid var(--border);padding:8px 12px;background:#0d1117">
-              <span id="os-shell-prompt" style="color:var(--accent);font-family:monospace;font-size:12px;white-space:nowrap;margin-right:8px"></span>
-              <input type="text" id="os-shell-input" class="form-control" placeholder="Enter OS command..." style="flex:1;border:none;background:transparent;color:var(--green);font-family:monospace;font-size:13px;padding:4px 0" autocomplete="off" spellcheck="false">
+            <div class="terminal-stream" id="os-shell-output" style="min-height:240px;max-height:480px"></div>
+            <div class="terminal-composer">
+              <span class="terminal-prefix" id="os-shell-prompt">$</span>
+              <textarea id="os-shell-input" class="terminal-input" placeholder="shell command  ·  Enter runs  ·  Shift+Enter newline  ·  Ctrl+↑/↓ history  ·  Ctrl+L clear" autocomplete="off" spellcheck="false"></textarea>
             </div>
           </div>
         </div>
@@ -98,7 +117,7 @@
             Multiplexed Tunnel
             <div class="btn-group">
               <span id="tunnel-status" style="font-size:12px;color:var(--muted)">Idle</span>
-              <button class="btn btn-sm btn-secondary" onclick="tunnelRefresh()">&#x21BB; Refresh</button>
+              <button class="btn btn-sm btn-secondary" onclick="tunnelRefresh()"><svg class="icon" viewBox="0 0 16 16"><path d="M8 2a6 6 0 00-6 6h1.5A4.5 4.5 0 018 3.5c1 0 1.8.3 2.5.8L9 6h5V1l-1.5 1.5A6 6 0 008 2zm6 6h-1.5A4.5 4.5 0 018 12.5c-1 0-1.8-.3-2.5-.8L7 10H2v5l1.5-1.5A6 6 0 008 14a6 6 0 006-6z"/></svg> Refresh</button>
             </div>
           </div>
           <div class="card-body">
@@ -109,7 +128,7 @@
               <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Tunnel Endpoint URL:</div>
               <div style="display:flex;gap:8px;align-items:center">
                 <input class="form-control" id="tunnel-url" readonly style="flex:1;font-family:monospace;font-size:12px">
-                <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('tunnel-url').value).then(()=>this.textContent='Copied!',()=>{})">&#x1F4CB; Copy</button>
+                <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('tunnel-url').value).then(()=>this.textContent='Copied!',()=>{})"><svg class="icon" viewBox="0 0 16 16"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
               </div>
             </div>
             <div style="margin-bottom:12px">
@@ -117,7 +136,7 @@
               <code id="tunnel-cmd" style="display:block;background:rgba(0,0,0,.3);padding:10px;border-radius:4px;font-size:12px;color:var(--green);word-break:break-all"></code>
               <code id="tunnel-cmd-fwd" style="display:block;background:rgba(0,0,0,.3);padding:6px 10px;border-radius:4px;font-size:11px;color:var(--muted);margin-top:4px;word-break:break-all"></code>
             </div>
-            <button class="btn btn-primary" onclick="tunnelCheck()">&#x1F50C; Test Connection</button>
+            <button class="btn btn-primary" onclick="tunnelCheck()"><svg class="icon" viewBox="0 0 16 16"><path d="M5 1v4H4v3a3 3 0 002 2.8V12a2 2 0 002 2 2 2 0 002-2v-1.2A3 3 0 0012 8V5h-1V1h-1v4H6V1z"/></svg> Test Connection</button>
             <div id="tunnel-test-result" style="margin-top:10px;font-size:12px"></div>
           </div>
         </div>
@@ -139,25 +158,19 @@
       <!-- FILES TAB -->
       <div class="tab-content" id="tab-files">
         <div class="card">
-          <div class="card-header">
-            File Browser
-            <div style="display:flex;align-items:center;gap:8px">
-              <input class="form-control" id="files-path-input" style="width:320px;font-size:12px" value="{{INITIAL_DIR}}">
-              <button class="btn btn-sm btn-primary" onclick="browseDir(document.getElementById('files-path-input').value)">Go</button>
-            </div>
+          <div class="card-header files-toolbar">
+            <span class="files-toolbar-title">File Browser</span>
+            <input class="form-control files-path" id="files-path-input" value="{{INITIAL_DIR}}">
+            <button class="btn btn-sm btn-primary" onclick="browseDir(document.getElementById('files-path-input').value)">Go</button>
+            <span class="files-toolbar-sep"></span>
+            <input type="file" id="upload-input" class="files-upload-input" title="Choose file to upload to current directory">
+            <button class="btn btn-sm btn-primary" onclick="uploadFile()" title="Upload chosen file to current directory"><svg class="icon" viewBox="0 0 16 16"><path d="M8 1L3.1 5.9l1.4 1.4L7 4.8V12h2V4.8l2.5 2.5 1.4-1.4zM2 13v2h12v-2z"/></svg> Upload</button>
+            <span id="upload-status" class="files-upload-status"></span>
           </div>
           <div class="card-body" style="padding:0">
             <div id="files-body">
               <div style="padding:16px;color:var(--muted);font-size:13px">Loading...</div>
             </div>
-          </div>
-          <div id="files-upload-area" style="padding:12px 16px;border-top:1px solid var(--border)">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Upload to current directory</div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <input type="file" id="upload-input" style="font-size:13px;color:var(--text)">
-              <button class="btn btn-sm btn-primary" onclick="uploadFile()">&#x2B06; Upload</button>
-            </div>
-            <div id="upload-status" style="font-size:12px;margin-top:6px"></div>
           </div>
         </div>
       </div>
@@ -217,7 +230,7 @@
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);margin-bottom:10px;cursor:pointer">
               <input type="checkbox" id="scan-fingerprint" checked> Fingerprint open ports (banner grab + TLS cert)
             </label>
-            <button class="btn btn-primary" id="scan-start-btn" onclick="scanStart()">&#x25B6; Start Scan</button>
+            <button class="btn btn-primary" id="scan-start-btn" onclick="scanStart()"><svg class="icon" viewBox="0 0 16 16"><path d="M3 2v12l11-6L3 2z"/></svg> Start Scan</button>
           </div>
         </div>
         <div class="card">
@@ -235,7 +248,12 @@
         <div class="card">
           <div class="card-header">
             System Diagnostics
-            <button class="btn btn-sm btn-primary" onclick="loadDiag()">&#x1F504; Refresh</button>
+            <div class="btn-group">
+<!-- MODULE:faraday -->
+              <button class="btn btn-sm btn-secondary" onclick="faradayExportDiag()" title="Export the loaded diagnostics blob as a faraday_json file">&#x2191; Faraday</button>
+<!-- /MODULE:faraday -->
+              <button class="btn btn-sm btn-primary" onclick="loadDiag()"><svg class="icon" viewBox="0 0 16 16"><path d="M8 2a6 6 0 00-6 6h1.5A4.5 4.5 0 018 3.5c1 0 1.8.3 2.5.8L9 6h5V1l-1.5 1.5A6 6 0 008 2zm6 6h-1.5A4.5 4.5 0 018 12.5c-1 0-1.8-.3-2.5-.8L7 10H2v5l1.5-1.5A6 6 0 008 14a6 6 0 006-6z"/></svg> Refresh</button>
+            </div>
           </div>
           <div class="card-body" id="diag-body">
             <div style="color:var(--muted);font-size:13px">Click Refresh to load diagnostics.</div>
@@ -252,7 +270,7 @@
           <div class="card-header">
             Command History
             <div class="btn-group">
-              <button class="btn btn-sm btn-secondary" onclick="exportHistory()">&#x2B07; Export</button>
+              <button class="btn btn-sm btn-secondary" onclick="exportHistory()"><svg class="icon" viewBox="0 0 16 16"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Export</button>
               <button class="btn btn-sm btn-danger" onclick="clearHistory()">Clear</button>
             </div>
           </div>

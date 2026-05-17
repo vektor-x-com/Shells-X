@@ -77,12 +77,32 @@ try {
 
     const response = await fetch(BASE_URL, { method: 'POST', body: encFd });
     const encText = await response.text();
-    try {
-      const plaintext = await decryptStr(encText);
-      return JSON.parse(plaintext);
-    } catch(e) {
-      try { return JSON.parse(encText); }
-      catch(e2) { throw new Error('Decryption/parse failed:\n' + encText.substring(0, 500)); }
+    // Decryption path: try AES first, then fall back to plain JSON (the
+    // server may have sent unencrypted JSON if a handler aggressively
+    // destroyed our encryption ob_start buffer). Error messages report
+    // the most useful representation — decrypted plaintext when we have
+    // it, raw response when we don't — instead of dumping unhelpful
+    // base64 at the operator.
+    let plaintext = null;
+    try { plaintext = await decryptStr(encText); }
+    catch(_) { /* decryption failed; fall through to raw-JSON fallback */ }
+
+    if (plaintext !== null) {
+      try { return JSON.parse(plaintext); }
+      catch(_) {
+        // Decrypted but not JSON — usually because user code in the PHP
+        // console did `echo "x"; exit;` and bypassed eval.php's JSON
+        // wrapper. Surface the raw output as if it were the `output`
+        // field so the console still shows something useful.
+        return { output: plaintext, error: null, _raw: true };
+      }
+    }
+
+    // Couldn't decrypt — maybe the server sent unencrypted JSON anyway.
+    try { return JSON.parse(encText); }
+    catch(_) {
+      throw new Error('Response was neither encrypted nor JSON:\n' +
+        encText.substring(0, 500));
     }
   };
 })();

@@ -239,13 +239,22 @@ function renderScanHeader(s) {
     ctrls += '<button class="btn btn-sm btn-primary" data-id="' + escHtml(s.id) + '" onclick="scanControl(this.dataset.id,\'resume\')">▶ Resume</button>';
     ctrls += '<button class="btn btn-sm btn-danger" data-id="' + escHtml(s.id) + '" onclick="scanControl(this.dataset.id,\'stop\')">■ Stop</button>';
   }
+  if (typeof faradayExportScan === 'function') {
+    ctrls += '<button class="btn btn-sm btn-secondary" data-id="' + escHtml(s.id) + '" onclick="faradayExportScan(this.dataset.id)" title="Export this scan as a faraday_json file">↑ Faraday</button>';
+  }
   ctrls += '<button class="btn btn-sm btn-secondary" data-id="' + escHtml(s.id) + '" onclick="scanExportResults(this.dataset.id)">⬇ Export</button>';
   ctrls += '<button class="btn btn-sm btn-danger" data-id="' + escHtml(s.id) + '" onclick="scanDestroy(this.dataset.id)">✖ Delete</button>';
 
+  // Pulsing live-dot for in-flight scans gives an at-a-glance "is it moving"
+  // signal that the periodically-updated text counts can't convey.
+  const liveDot = s.status === 'running'
+    ? '<span class="live-dot" style="background:' + _scanStatusColor(s.status) + ';box-shadow:0 0 6px ' + _scanStatusColor(s.status) + '"></span>'
+    : '';
   let h = '';
   h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
-  h += '<span style="color:' + _scanStatusColor(s.status) + ';font-weight:600;text-transform:uppercase;font-size:11px">' + escHtml(s.status) + '</span>';
-  h += '<span style="font-family:monospace;font-size:12px;color:var(--muted)">' + escHtml(s.id) + '</span>';
+  h += liveDot;
+  h += '<span style="color:' + _scanStatusColor(s.status) + ';font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.08em">[' + escHtml(s.status) + ']</span>';
+  h += '<span style="font-size:11.5px;color:var(--muted)">' + escHtml(s.id) + '</span>';
   h += '<span style="font-size:12px;color:var(--text)">' + escHtml(opts.targets_str || '') + '</span>';
   h += '<span style="font-size:11px;color:var(--muted)">ports: ' + escHtml(opts.ports_str || '') + ' · ' + escHtml(opts.proto || 'tcp') + '</span>';
   h += '</div>';
@@ -265,8 +274,9 @@ function renderScanMeta(s) {
   h += '<span style="color:var(--muted)">filtered: ' + (sum.filtered || 0) + '</span>';
   h += '<span style="color:var(--muted)">elapsed: ' + elapsed + 's</span>';
   h += '</div>';
-  h += '<div style="height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;margin-bottom:10px">';
-  h += '<div style="height:100%;width:' + pct + '%;background:' + _scanStatusColor(s.status) + ';transition:width .3s"></div>';
+  // Stepped instrument-style progress bar — see .hud-bar in shell.css.
+  h += '<div class="hud-bar" style="margin-bottom:10px">';
+  h += '<div class="fill" style="width:' + pct + '%' + (s.status !== 'running' ? ';background:' + _scanStatusColor(s.status) : '') + '"></div>';
   h += '</div>';
   return h;
 }

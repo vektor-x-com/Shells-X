@@ -51,6 +51,9 @@ function loadDiag() {
         body.innerHTML = '<div style="color:var(--red)">Backend error: ' + escHtml(d.error) + '</div>';
         return;
       }
+      // Cache the freshest diag blob so the Faraday export module can read it
+      // without re-running the recon scan.
+      window._lastDiagBlob = d;
       let html = '';
 
       // ---- ROW 1: System + Identity ----

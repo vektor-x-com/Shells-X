@@ -45,7 +45,7 @@ function loadDiag() {
   const fd = new FormData();
   fd.append('action', 'diag');
 
-  fetchJSON(fd)
+  window._diagInFlight = fetchJSON(fd)
     .then(function(d) {
       if (d.error) {
         body.innerHTML = '<div style="color:var(--red)">Backend error: ' + escHtml(d.error) + '</div>';
@@ -535,7 +535,9 @@ function loadDiag() {
     })
     .catch(function(err) {
       body.innerHTML = '<div style="color:var(--red)">Error: ' + escHtml(String(err)) + '</div>';
-    });
+    })
+    .finally(function() { window._diagInFlight = null; });
+  return window._diagInFlight;
 }
 
 function formatBytes(b) {

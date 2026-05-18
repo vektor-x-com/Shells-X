@@ -4,7 +4,10 @@ import json
 import os
 import re
 
-from .paths import CONFIG_PATH
+from .paths import BACKEND_DIR, CONFIG_PATH
+
+# Language → source/output extension (backend files and dist filename).
+SCRIPT_EXTENSIONS = {'php': '.php', 'aspx': '.aspx', 'jsp': '.jsp', 'py': '.py'}
 
 # Module → file mapping for --exclude. The tunnel module's PHP is not listed
 # because it's injected from an external path via --tunnel, not from
@@ -42,7 +45,13 @@ def read_file(path):
         return f.read()
 
 
-def load_ordered_files(directory, extension, order_file='_order.json'):
+def backend_auth_path(lang):
+    """Path to the language-specific auth gate source (e.g. ``auth.php``)."""
+    ext = SCRIPT_EXTENSIONS.get(lang, f'.{lang}')
+    return os.path.join(BACKEND_DIR(lang), f'auth{ext}')
+
+
+def load_ordered_filepaths(directory, extension, order_file='_order.json'):
     """Return file paths in the order specified by _order.json, or
     alphabetical (excluding underscore-prefixed files) as fallback."""
     order_path = os.path.join(directory, order_file)
@@ -50,14 +59,14 @@ def load_ordered_files(directory, extension, order_file='_order.json'):
         with open(order_path, 'r') as f:
             order = json.load(f)
         return [os.path.join(directory, name + extension) for name in order]
-    files = sorted(
-        f for f in os.listdir(directory)
-        if f.endswith(extension) and not f.startswith('_')
-    )
+    
+    else:
+        exit("order file is missing, or at wrong directory")
+    
     return [os.path.join(directory, f) for f in files]
 
 
-def get_excluded_files(exclude_modules):
+def get_excluded_filepaths(exclude_modules):
     """Map a set of module names to the concrete backend + JS files to
     skip during assembly. Unknown modules quietly contribute nothing —
     the CLI layer is responsible for rejecting --exclude on required

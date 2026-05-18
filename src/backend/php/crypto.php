@@ -4,6 +4,17 @@
 // Sacrificial buffer pattern: template's ob_start is cleaned, then encryption buffer + sacrificial
 // buffer are stacked. Handlers' ob_end_clean() destroys the sacrificial buffer; the encryption
 // buffer survives and encrypts output on exit/flush.
+
+// Reject cleartext API bodies before decrypt (must run while __enc is still present).
+if (isset($__AUTH_HASH) && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['action']) && !isset($_POST['__enc'])) {
+    while (ob_get_level())
+        ob_end_clean();
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Encryption required']);
+    exit;
+}
+
 if (isset($_POST['__enc']) && isset($__AUTH_HASH) && function_exists('openssl_decrypt')) {
     $__CRYPTO_KEY = hex2bin($__AUTH_HASH);
     $raw = base64_decode($_POST['__enc'], true);

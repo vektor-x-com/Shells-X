@@ -1,27 +1,12 @@
-// Crypto module — overrides fetchJSON with AES-256-CBC encryption when __BUILD.encrypted is set.
-// Key is SHA-256 of the password, stored in sessionStorage by the login page script.
-// Wrapped in try/catch: if `crypto.subtle` is unavailable (insecure HTTP context)
-// or anything else throws synchronously, swallow it so the rest of the bundle
-// (db.js, scanner.js, tunnel.js, ...) still loads instead of leaving `_db` in
-// TDZ and the page half-broken.
+// Crypto module — AES-256-CBC transport matching PHP openssl (crypto.php).
+// Always uses vendored sha256 + aesjs so behaviour is identical on HTTPS,
+// http://192.168.x.x, and localhost (Web Crypto subtle is intentionally unused).
 try {
 (function() {
   if (typeof __BUILD === 'undefined' || !__BUILD.encrypted) return;
-  if (!window.crypto || !window.crypto.subtle) {
-    console.warn('crypto.subtle unavailable (insecure context) — encryption disabled');
-    return;
-  }
 
-  let encKeyHex = sessionStorage.getItem('__enc_key');
-  if (!encKeyHex) {
-    const pw = prompt('Enter encryption passphrase (same as login password):');
-    if (!pw) return;
-    crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw)).then(h => {
-      const hex = Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('');
-      sessionStorage.setItem('__enc_key', hex);
-      location.reload();
-    });
-    return;
+  if (typeof sha256 !== 'function' || typeof aesjs === 'undefined') {
+    throw new Error('crypto.js requires sha256.js and aesjs.js before crypto.js');
   }
 
   function hexToBytes(hex) {
@@ -30,24 +15,49 @@ try {
     return bytes;
   }
 
-  function getKey() {
-    return crypto.subtle.importKey('raw', hexToBytes(encKeyHex), { name: 'AES-CBC' }, false, ['encrypt', 'decrypt']);
-  }
-
-  async function encryptStr(plaintext) {
-    const key = await getKey();
-    const iv = crypto.getRandomValues(new Uint8Array(16));
-    const enc = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, key, new TextEncoder().encode(plaintext));
-    const buf = new Uint8Array(16 + enc.byteLength);
-    buf.set(iv);
-    buf.set(new Uint8Array(enc), 16);
-    // Manual base64 encode to handle large payloads without stack overflow
+  function bytesToB64(bytes) {
     let binary = '';
-    for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
     return btoa(binary);
   }
 
-  // Some WAFs / reverse proxies wrap binary-looking bodies in HTML comments.
+  function b64ToBytes(b64) {
+    return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  }
+
+  function arrayBufferToB64(buf) {
+    return bytesToB64(new Uint8Array(buf));
+  }
+
+  function randomBytes(n) {
+    const out = new Uint8Array(n);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(out);
+    } else {
+      for (let i = 0; i < n; i++) out[i] = (Math.random() * 256) | 0;
+    }
+    return out;
+  }
+
+  function digestSha256Hex(str) {
+    return sha256(str);
+  }
+
+  // Wire format: base64( iv[16] || aes-256-cbc-pkcs7(plaintext) ) — same as PHP side.
+  function encryptStr(plaintext, keyHex) {
+    const key = Array.from(hexToBytes(keyHex));
+    const iv = Array.from(randomBytes(16));
+    const padded = aesjs.padding.pkcs7.pad(Array.from(new TextEncoder().encode(plaintext)));
+    const enc = new aesjs.ModeOfOperation.cbc(key, iv).encrypt(padded);
+    const out = new Uint8Array(16 + enc.length);
+    out.set(iv);
+    out.set(enc, 16);
+    return bytesToB64(out);
+  }
+
   function unwrapEncBody(text) {
     let t = text.trim();
     const m = t.match(/^<!--\s*([\s\S]*?)\s*-->$/);
@@ -55,65 +65,62 @@ try {
     return t;
   }
 
-  async function decryptStr(b64) {
-    const key = await getKey();
-    const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const iv = raw.slice(0, 16);
-    const ct = raw.slice(16);
-    const dec = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, ct);
-    return new TextDecoder().decode(dec);
+  function decryptStr(b64, keyHex) {
+    const key = Array.from(hexToBytes(keyHex));
+    const raw = b64ToBytes(b64);
+    const iv = Array.from(raw.slice(0, 16));
+    const ct = Array.from(raw.slice(16));
+    const dec = aesjs.padding.pkcs7.strip(new aesjs.ModeOfOperation.cbc(key, iv).decrypt(ct));
+    return new TextDecoder().decode(new Uint8Array(dec));
   }
 
-  // Override fetchJSON for transparent encryption
-  window.fetchJSON = async function(fd) {
-    // Skip encryption for file uploads
-    for (const [, v] of fd.entries()) {
+  async function fdToQueryString(fd) {
+    const params = new URLSearchParams();
+    for (const [k, v] of fd.entries()) {
       if (v instanceof File) {
-        return fetch(BASE_URL, { method: 'POST', body: fd })
-          .then(r => r.text())
-          .then(text => {
-            try { return JSON.parse(text); }
-            catch(e) { throw new Error('PHP returned non-JSON:\n' + text.substring(0, 500)); }
-          });
+        params.append('file_name', v.name);
+        params.append('file_b64', arrayBufferToB64(await v.arrayBuffer()));
+      } else {
+        params.append(k, v);
       }
     }
+    return params.toString();
+  }
 
-    const params = new URLSearchParams(fd).toString();
-    const encPayload = await encryptStr(params);
+  let encKeyHex = sessionStorage.getItem('__enc_key');
+  if (!encKeyHex) {
+    const pw = prompt('Enter encryption passphrase (same as login password):');
+    if (!pw) return;
+    sessionStorage.setItem('__enc_key', digestSha256Hex(pw));
+    location.reload();
+    return;
+  }
+
+  window.fetchJSON = async function(fd) {
+    const params = await fdToQueryString(fd);
+    const encPayload = encryptStr(params, encKeyHex);
     const encFd = new FormData();
     encFd.append('__enc', encPayload);
 
     const response = await fetch(BASE_URL, { method: 'POST', body: encFd });
     const encText = unwrapEncBody(await response.text());
-    // Decryption path: try AES first, then fall back to plain JSON (the
-    // server may have sent unencrypted JSON if a handler aggressively
-    // destroyed our encryption ob_start buffer). Error messages report
-    // the most useful representation — decrypted plaintext when we have
-    // it, raw response when we don't — instead of dumping unhelpful
-    // base64 at the operator.
     let plaintext = null;
-    try { plaintext = await decryptStr(encText); }
-    catch(_) { /* decryption failed; fall through to raw-JSON fallback */ }
+    try { plaintext = decryptStr(encText, encKeyHex); }
+    catch(_) { /* fall through */ }
 
     if (plaintext !== null) {
       try { return JSON.parse(plaintext); }
       catch(_) {
-        // Decrypted but not JSON — usually because user code in the PHP
-        // console did `echo "x"; exit;` and bypassed eval.php's JSON
-        // wrapper. Surface the raw output as if it were the `output`
-        // field so the console still shows something useful.
         return { output: plaintext, error: null, _raw: true };
       }
     }
 
-    // Couldn't decrypt — maybe the server sent unencrypted JSON anyway.
-    try { return JSON.parse(encText); }
-    catch(_) {
-      throw new Error('Response was neither encrypted nor JSON:\n' +
-        encText.substring(0, 500));
-    }
+    throw new Error('Response was neither encrypted nor JSON:\n' +
+      encText.substring(0, 500));
   };
+
+  window.ShellsXDigestSha256 = digestSha256Hex;
 })();
 } catch (e) {
-  console.error('crypto module init failed (continuing without encryption):', e);
+  console.error('crypto module init failed:', e);
 }

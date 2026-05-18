@@ -75,7 +75,7 @@ def generate_custom_css(palette):
     if not palette:
         return ''
     lines = [f'{k}:{v}' for k, v in palette.items()]
-    return ':root{' + ';'.join(lines) + '}'
+    return ':root{' + ';'.join(lines) + '}' 
 
 
 # ---------------------------------------------------------------------------

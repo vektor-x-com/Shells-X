@@ -115,12 +115,18 @@ function _initHistory(adapter) {
         .filter(r => r && r.cmd && _cmdMatchesAdapter(r.cmd, adapter.id))
         .map(r => _stripMarker(r.cmd, adapter.historyMarker))
         .reverse();
+      const priorIdx = adapter.histIdx;
+      const priorLen = adapter.history.length;
       // Prepend prior-session history to whatever the operator pushed during
       // the IDB-load window. In-memory pushes are sync and canonical; IDB load
       // is treated as "older history" prefix data. This eliminates the race
       // where a command run during IDB load would otherwise be clobbered.
       adapter.history = fromIdb.concat(adapter.history);
-      adapter.histIdx = adapter.history.length;
+      if (priorIdx < 0 || priorIdx >= priorLen) {
+        adapter.histIdx = adapter.history.length;
+      } else {
+        adapter.histIdx = priorIdx + fromIdb.length;
+      }
     })
     .catch(() => { /* IDB unavailable — in-memory history still works for this session */ });
 }
@@ -229,7 +235,7 @@ function _run(adapterId) {
         cmd: (adapter.historyMarker || '') + code,
         out: data.output || data.error || '',
         error: data.error || null,
-        ts: new Date().toISOString(),
+        ts: new Date().toISOString() + '#' + Math.random().toString(36).slice(2, 10),
       });
     })
     .catch(err => {
@@ -253,7 +259,17 @@ function bind(config) {
   _initKeydown(adapter);
 }
 
-window.Terminal = { bind, streamAppend, streamSep, streamClear, streamCopy, streamDownload };
+function clearTerminalHistory() {
+  Object.keys(_adapters).forEach(id => {
+    _adapters[id].history = [];
+    _adapters[id].histIdx = -1;
+  });
+}
+
+window.Terminal = {
+  bind, clearTerminalHistory,
+  streamAppend, streamSep, streamClear, streamCopy, streamDownload,
+};
 
 // Inline `onclick="streamClear(...)"` handlers in card headers expect these
 // as globals. Re-export so the header buttons keep working without HTML edits.

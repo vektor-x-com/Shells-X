@@ -5,7 +5,7 @@ The package is split by concern so each module fits on a screen:
     paths        — filesystem paths (single source of truth)
     config       — module registry, file I/O, exclusion logic
     theme        — palette math, named presets, custom CSS emit
-    auth         — login screen PHP block + AES key handshake
+    auth         — login HTML + per-language auth gate assembly
     minify       — basic CSS/JS minifier
     fingerprint  — build hash + integrity verification
     builder      — orchestration: source → assembled shell

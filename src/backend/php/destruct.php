@@ -1,6 +1,8 @@
 <?php
 if (isset($_POST['action']) && $_POST['action'] === 'destruct') {
-    ob_end_clean();
+    if (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     header('Content-Type: application/json');
     $file = __FILE__;
     $ok = @unlink($file);

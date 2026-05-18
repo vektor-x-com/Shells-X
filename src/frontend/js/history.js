@@ -43,7 +43,12 @@ function copyItem(ts) {
 
 function clearHistory() {
   if (confirm('Clear all command history?')) {
-    dbClear('history').then(() => renderHistory());
+    dbClear('history').then(() => {
+      if (window.Terminal && typeof Terminal.clearTerminalHistory === 'function') {
+        Terminal.clearTerminalHistory();
+      }
+      renderHistory();
+    });
   }
 }
 

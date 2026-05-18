@@ -1,6 +1,6 @@
 services:
   shell:
-    image: php:8.2-apache
+    build: .
     ports:
       - "8888:80"
     volumes:

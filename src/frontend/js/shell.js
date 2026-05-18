@@ -36,7 +36,7 @@ function probeShell() {
         card.style.display = 'block';
         status.innerHTML = '<span class="badge badge-ok">&#x2714; OS shell via <b>' + escHtml(shellMethod) + '()</b></span>';
         document.getElementById('os-shell-prompt').textContent = shellCwd + ' $';
-        document.getElementById('os-shell-input').placeholder = 'shell command  ·  Enter runs  ·  Shift+Enter newline  ·  Ctrl+↑/↓ history  ·  Ctrl+L clear';
+        document.getElementById('os-shell-input').placeholder = 'shell command  ·  Enter runs  ·  Shift+Enter newline  ·  ↑/↓ history  ·  Ctrl+L clear';
       } else {
         card.style.display = 'block';
         status.innerHTML = '<span class="badge badge-no">&#x2716; No exec function available</span>';
@@ -112,26 +112,33 @@ function runShellCmd() {
       runShellCmd();
       return;
     }
-    // History: Ctrl modifier so plain arrows still navigate within the
-    // multi-line textarea naturally (matches PHP Console behavior).
-    if (e.ctrlKey && e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (!shellHistory.length) return;
-      if (shellHistIdx > 0) shellHistIdx--;
-      else shellHistIdx = 0;
-      e.target.value = shellHistory[shellHistIdx] || '';
-      return;
-    }
-    if (e.ctrlKey && e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (shellHistIdx < shellHistory.length - 1) {
-        shellHistIdx++;
-        e.target.value = shellHistory[shellHistIdx];
-      } else {
-        shellHistIdx = shellHistory.length;
-        e.target.value = '';
+    // History: plain ↑/↓ when caret is on the edge line of the textarea
+    // (so multi-line cursor nav still works mid-buffer). Ctrl+↑/↓ forces
+    // history regardless. Matches PHP Console.
+    if (e.key === 'ArrowUp' && !e.shiftKey && !e.altKey) {
+      const before = e.target.value.substring(0, e.target.selectionStart);
+      if (e.ctrlKey || !before.includes('\n')) {
+        e.preventDefault();
+        if (!shellHistory.length) return;
+        if (shellHistIdx > 0) shellHistIdx--;
+        else shellHistIdx = 0;
+        e.target.value = shellHistory[shellHistIdx] || '';
+        return;
       }
-      return;
+    }
+    if (e.key === 'ArrowDown' && !e.shiftKey && !e.altKey) {
+      const after = e.target.value.substring(e.target.selectionEnd);
+      if (e.ctrlKey || !after.includes('\n')) {
+        e.preventDefault();
+        if (shellHistIdx < shellHistory.length - 1) {
+          shellHistIdx++;
+          e.target.value = shellHistory[shellHistIdx];
+        } else {
+          shellHistIdx = shellHistory.length;
+          e.target.value = '';
+        }
+        return;
+      }
     }
     if (e.ctrlKey && e.key === 'l') {
       e.preventDefault();

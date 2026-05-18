@@ -141,26 +141,33 @@ if (typeof dbGetAll === 'function') {
     runCode();
     return;
   }
-  // History nav with Ctrl+Up / Ctrl+Down — Ctrl modifier so plain arrows
-  // still navigate within the multi-line textarea naturally.
-  if (e.ctrlKey && e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (!_phpHistory.length) return;
-    if (_phpHistIdx <= 0) _phpHistIdx = 0;
-    else _phpHistIdx--;
-    e.target.value = _phpHistory[_phpHistIdx] || '';
-    return;
-  }
-  if (e.ctrlKey && e.key === 'ArrowDown') {
-    e.preventDefault();
-    if (_phpHistIdx < _phpHistory.length - 1) {
-      _phpHistIdx++;
-      e.target.value = _phpHistory[_phpHistIdx];
-    } else {
-      _phpHistIdx = _phpHistory.length;
-      e.target.value = '';
+  // History nav: plain ↑/↓ when the caret is on the edge line of the
+  // textarea (so multi-line cursor nav still works mid-buffer). Ctrl+↑/↓
+  // forces history regardless of caret position.
+  if (e.key === 'ArrowUp' && !e.shiftKey && !e.altKey) {
+    const before = e.target.value.substring(0, e.target.selectionStart);
+    if (e.ctrlKey || !before.includes('\n')) {
+      e.preventDefault();
+      if (!_phpHistory.length) return;
+      if (_phpHistIdx <= 0) _phpHistIdx = 0;
+      else _phpHistIdx--;
+      e.target.value = _phpHistory[_phpHistIdx] || '';
+      return;
     }
-    return;
+  }
+  if (e.key === 'ArrowDown' && !e.shiftKey && !e.altKey) {
+    const after = e.target.value.substring(e.target.selectionEnd);
+    if (e.ctrlKey || !after.includes('\n')) {
+      e.preventDefault();
+      if (_phpHistIdx < _phpHistory.length - 1) {
+        _phpHistIdx++;
+        e.target.value = _phpHistory[_phpHistIdx];
+      } else {
+        _phpHistIdx = _phpHistory.length;
+        e.target.value = '';
+      }
+      return;
+    }
   }
   if (e.ctrlKey && e.key === 'l') {
     e.preventDefault();

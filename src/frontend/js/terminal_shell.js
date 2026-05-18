@@ -67,6 +67,10 @@ function probeShell() {
     .catch(() => {
       card.style.display = 'block';
       status.innerHTML = '<span class="badge badge-no">&#x2716; Probe failed</span>';
+      // Without bind() we'd leave a live-looking input that silently swallows
+      // every key — disable it and tell the operator how to recover.
+      document.getElementById('os-shell-input').disabled = true;
+      document.getElementById('os-shell-input').placeholder = 'OS shell probe failed — reload the page to retry';
     });
 }
 

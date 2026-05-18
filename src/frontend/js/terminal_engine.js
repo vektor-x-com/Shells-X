@@ -69,17 +69,17 @@ function streamDownload(streamId, prefix) {
 const _adapters = {};
 
 // Markers (e.g. '$ ' for shell) partition the shared `history` IDB store.
-// An adapter with marker='' (legacy PHP) reads "everything that doesn't
-// start with any OTHER known marker" — so registering a shell adapter with
-// '$ ' automatically excludes those rows from the PHP adapter's view.
+// A catch-all adapter (marker='') declares foreign markers via `excludeMarkers`
+// so partitioning is deterministic regardless of bind order. (Earlier version
+// peeked at other adapters at load time — that broke when PHP's history loaded
+// before the async shell-probe bind, since the engine didn't yet know about
+// '$ '.)
 function _cmdMatchesAdapter(cmd, adapterId) {
   const adapter = _adapters[adapterId];
   if (!adapter) return false;
   if (adapter.historyMarker) return cmd.startsWith(adapter.historyMarker);
-  // Empty marker: claim everything not claimed by another adapter.
-  for (const other of Object.values(_adapters)) {
-    if (other === adapter) continue;
-    if (other.historyMarker && cmd.startsWith(other.historyMarker)) return false;
+  for (const m of adapter.excludeMarkers) {
+    if (cmd.startsWith(m)) return false;
   }
   return true;
 }
@@ -91,7 +91,7 @@ function _stripMarker(cmd, marker) {
 function _initSnippets(adapter) {
   const container = document.getElementById(adapter.snippetEl);
   if (!container) return;
-  container.append(...adapter.snippets.map(([label, code]) => {
+  container.append(...(adapter.snippets || []).map(([label, code]) => {
     const b = document.createElement('button');
     b.className = 'btn btn-sm btn-secondary';
     b.textContent = label;
@@ -111,13 +111,18 @@ function _initHistory(adapter) {
     .then(rows => {
       // history is sorted newest-first by db.js; reverse so ↑ steps backward
       // through time naturally.
-      adapter.history = rows
+      const fromIdb = rows
         .filter(r => r && r.cmd && _cmdMatchesAdapter(r.cmd, adapter.id))
         .map(r => _stripMarker(r.cmd, adapter.historyMarker))
         .reverse();
+      // Prepend prior-session history to whatever the operator pushed during
+      // the IDB-load window. In-memory pushes are sync and canonical; IDB load
+      // is treated as "older history" prefix data. This eliminates the race
+      // where a command run during IDB load would otherwise be clobbered.
+      adapter.history = fromIdb.concat(adapter.history);
       adapter.histIdx = adapter.history.length;
     })
-    .catch(() => { /* IDB unavailable — history stays empty, no functional break */ });
+    .catch(() => { /* IDB unavailable — in-memory history still works for this session */ });
 }
 
 function _initKeydown(adapter) {
@@ -174,7 +179,11 @@ function _run(adapterId) {
   if (!code) return;
   if (adapter.gate && !adapter.gate()) return;   // adapter can veto (e.g. shell unavailable)
 
-  // Track local history (dedupe consecutive identical entries).
+  // SYNC push to in-memory history — this is the canonical store ↑/↓ reads.
+  // IDB write below is fire-and-forget; IDB load on bind prepends prior-
+  // session entries. Treating in-memory as canonical (instead of letting
+  // async IDB ops overwrite it) is what keeps history race-free.
+  // Dedupe consecutive identical entries.
   if (adapter.history[adapter.history.length - 1] !== code) adapter.history.push(code);
   adapter.histIdx = adapter.history.length;
 
@@ -187,20 +196,34 @@ function _run(adapterId) {
   });
   input.value = '';
 
-  adapter.inFlight = true;
+  // Build request — guarded so a throwing adapter.beforeRun can't leave
+  // inFlight=true forever (would permanently lock the adapter, silently
+  // dropping every subsequent submit).
   const fd = new FormData();
-  fd.append('action', adapter.runAction);
-  fd.append(adapter.codeField, code);
-  if (adapter.timeoutField) fd.append(adapter.timeoutField, adapter.timeoutValue);
-  if (adapter.beforeRun) adapter.beforeRun(fd, code);
+  try {
+    fd.append('action', adapter.runAction);
+    fd.append(adapter.codeField, code);
+    if (adapter.timeoutField) fd.append(adapter.timeoutField, adapter.timeoutValue);
+    if (adapter.beforeRun) adapter.beforeRun(fd, code);
+  } catch (err) {
+    streamAppend(adapter.outputEl, 'err', '[err] Request setup failed: ' + String(err));
+    streamSep(adapter.outputEl);
+    return;
+  }
 
+  adapter.inFlight = true;
   fetchJSON(fd)
     .then(data => {
       if (data.error) streamAppend(adapter.outputEl, 'err', '[err] ' + data.error);
       const out = (data.output || '').replace(/\n+$/, '');
       if (out) streamAppend(adapter.outputEl, 'out', out);
       else if (!data.error) streamAppend(adapter.outputEl, 'out', '(no output)');
-      if (adapter.afterRun) adapter.afterRun(data);
+      if (adapter.afterRun) {
+        // Same reason as beforeRun: don't let an adapter callback abort the
+        // result-rendering flow (history write below) or trip the .catch.
+        try { adapter.afterRun(data); }
+        catch (err) { streamAppend(adapter.outputEl, 'err', '[err] afterRun failed: ' + String(err)); }
+      }
       streamSep(adapter.outputEl);
       dbPut('history', {
         cmd: (adapter.historyMarker || '') + code,
@@ -217,7 +240,13 @@ function _run(adapterId) {
 }
 
 function bind(config) {
-  const adapter = Object.assign({ history: [], histIdx: -1, inFlight: false }, config);
+  const adapter = Object.assign({
+    history: [],
+    histIdx: -1,
+    inFlight: false,
+    snippets: [],
+    excludeMarkers: [],
+  }, config);
   _adapters[adapter.id] = adapter;
   _initSnippets(adapter);
   _initHistory(adapter);

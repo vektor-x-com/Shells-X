@@ -53,6 +53,7 @@ echo $hops===null ? "no answer in $max hops\\n" : "TTL to $ip:$port = $hops\\n";
   snippetEl:      'snippet-buttons',
   downloadPrefix: 'php-console',
   historyMarker:  '',                 // legacy: PHP entries unprefixed in shared history store
+  excludeMarkers: ['$ '],             // don't claim shell-prefixed entries (deterministic, doesn't depend on shell bind order)
   runAction:      'eval',
   codeField:      'code',
   timeoutField:   'timeout',

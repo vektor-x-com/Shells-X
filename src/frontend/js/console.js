@@ -91,6 +91,30 @@ const snippets = [
   ['/etc/passwd', "echo file_get_contents('/etc/passwd');"],
   ['phpinfo',     "phpinfo();"],
   ['uname',       "echo php_uname();"],
+  ['traceroute',  `// Edit <IP> and <PORT> then run. Returns hop count to that service —
+// compare two ports on the same IP: same TTL = service on host, higher TTL = DNAT/port-forward.
+$ip='<IP>'; $port=<PORT>; $max=30; $timeout=2;
+if (!extension_loaded('sockets')) { echo "needs PHP sockets extension\\n"; return; }
+// PHP sockets ext doesn't expose IP_TTL as a named constant; 2 = Linux, 4 = BSD.
+$IP_TTL = defined('IP_TTL') ? IP_TTL : (PHP_OS_FAMILY==='BSD'||PHP_OS_FAMILY==='Darwin' ? 4 : 2);
+$socks=[];
+for ($t=1; $t<=$max; $t++) {
+  $s=@socket_create(AF_INET,SOCK_STREAM,SOL_TCP);
+  if ($s===false) continue;
+  socket_set_option($s,IPPROTO_IP,$IP_TTL,$t);
+  socket_set_nonblock($s);
+  @socket_connect($s,$ip,$port);
+  $socks[$t]=$s;
+}
+$w=$socks; $r=$e=null;
+socket_select($r,$w,$e,$timeout);
+$hops=null;
+foreach ($socks as $ttl=>$s) {
+  $err=socket_get_option($s,SOL_SOCKET,SO_ERROR);
+  if (($err===0||$err===111) && ($hops===null||$ttl<$hops)) $hops=$ttl;
+  socket_close($s);
+}
+echo $hops===null ? "no answer in $max hops\\n" : "TTL to $ip:$port = $hops\\n";`],
 ];
 
 // Guarded — if the layout was trimmed or the element renamed, we don't want

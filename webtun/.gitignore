@@ -1,3 +1,4 @@
 webtun_servers/
 __pycache__/
 *.pyc
+.venv

@@ -1,28 +1,41 @@
 // ==================== HISTORY ====================
+function historyTsAttr(ts) {
+  if (typeof ts !== 'string' || !ts) return '';
+  if (/["'<>\\]/.test(ts)) return '';
+  return ts;
+}
+
 function renderHistory() {
   const body = document.getElementById('history-body');
   body.innerHTML = '<span class="spinner"></span>';
   dbGetAll('history').then(h => {
     if (h.length === 0) {
-      body.innerHTML = '<div style="color:var(--muted);font-size:13px">No history yet.</div>';
+      body.innerHTML = '<p class="empty-state">No history yet.</p>';
       return;
     }
-    body.innerHTML = h.map(item =>
-      '<div class="history-item">' +
+    body.innerHTML = h.map(item => {
+      const tsKey = historyTsAttr(item.ts);
+      const actions = tsKey
+        ? '<button type="button" class="btn btn-sm btn-secondary" data-ts="' + escHtml(tsKey) +
+          '" onclick="rerun(this.dataset.ts)">Re-run</button>' +
+          '<button type="button" class="btn btn-sm btn-secondary" data-ts="' + escHtml(tsKey) +
+          '" onclick="copyItem(this.dataset.ts)">Copy</button>'
+        : '';
+      return '<div class="history-item">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
       '<span class="history-cmd">' + escHtml(item.cmd.substring(0,80)) + (item.cmd.length>80?'...':'') + '</span>' +
       '<div style="display:flex;gap:6px;align-items:center">' +
       '<span style="font-size:11px;color:var(--muted)">' + new Date(item.ts).toLocaleString() + '</span>' +
-      '<button class="btn btn-sm btn-secondary" data-ts="' + escHtml(item.ts) + '" onclick="rerun(this.dataset.ts)">Re-run</button>' +
-      '<button class="btn btn-sm btn-secondary" data-ts="' + escHtml(item.ts) + '" onclick="copyItem(this.dataset.ts)">Copy</button>' +
+      actions +
       '</div></div>' +
       '<div class="history-out">' + escHtml(item.out.substring(0,500)) + (item.out.length>500?'\n...(truncated)':'') + '</div>' +
-      '</div>'
-    ).join('');
+      '</div>';
+    }).join('');
   });
 }
 
 function rerun(ts) {
+  if (!historyTsAttr(ts)) return;
   dbGetAll('history').then(h => {
     const item = h.find(x => x.ts === ts);
     if (!item) return;
@@ -35,6 +48,7 @@ function rerun(ts) {
 }
 
 function copyItem(ts) {
+  if (!historyTsAttr(ts)) return;
   dbGetAll('history').then(h => {
     const item = h.find(x => x.ts === ts);
     if (item) clipCopy(item.cmd + '\n\n' + item.out);

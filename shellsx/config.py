@@ -13,7 +13,7 @@ MODULE_BACKEND = {
     'scanner':     ['scanner.php'],
     'files':       ['filebrowser.php', 'fileops.php'],
     'diagnostics': ['diagnostics.php'],
-    'console':     ['eval.php'],
+    'console':     ['eval.php', 'snippets.php'],
 }
 
 MODULE_JS = {

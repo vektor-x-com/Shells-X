@@ -47,6 +47,14 @@ try {
     return btoa(binary);
   }
 
+  // Some WAFs / reverse proxies wrap binary-looking bodies in HTML comments.
+  function unwrapEncBody(text) {
+    let t = text.trim();
+    const m = t.match(/^<!--\s*([\s\S]*?)\s*-->$/);
+    if (m) t = m[1].trim();
+    return t;
+  }
+
   async function decryptStr(b64) {
     const key = await getKey();
     const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -76,7 +84,7 @@ try {
     encFd.append('__enc', encPayload);
 
     const response = await fetch(BASE_URL, { method: 'POST', body: encFd });
-    const encText = await response.text();
+    const encText = unwrapEncBody(await response.text());
     // Decryption path: try AES first, then fall back to plain JSON (the
     // server may have sent unencrypted JSON if a handler aggressively
     // destroyed our encryption ob_start buffer). Error messages report

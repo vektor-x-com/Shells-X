@@ -48,7 +48,7 @@ def _build_parser():
                         help='Comma-separated modules to exclude (e.g. tunnel,diagnostics)')
     parser.add_argument('--output', default='',
                         help='Custom output filename')
-    parser.add_argument('--theme', default='', choices=[''] + list(THEME_PRESETS.keys()),
+    parser.add_argument('--theme', default=None, choices=list(THEME_PRESETS.keys()),
                         help='Color theme. Harmonious (hue-derived): cyber, matrix, amber, '
                              'synth, arctic, sodium, viridian, rust, ultra, plasma. '
                              'Legacy hand-crafted: ocean, crimson, forest, purple, mono, solar. '

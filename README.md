@@ -92,8 +92,9 @@ Both consoles share the same terminal-stream UI — append-only output with sepa
 
 ![PHP Console + OS Shell — terminal-stream output with command echo, history, snippet buttons](images/console_page.jpg)
 
-Snippet buttons (`scandir`, `/etc/passwd`, `phpinfo`, `uname`) drop common one-liners into the PHP input. History is persisted to IndexedDB so Ctrl+↑ recalls commands from previous sessions, not just the current page load.
+Snippet buttons (`scandir`, `/etc/passwd`, `phpinfo`, `uname`, `traceroute`) common one-liners into the PHP input. History is persisted to IndexedDB so Ctrl+↑ recalls commands from previous sessions, not just the current page load.
 
+Feature `traceroute` added which uses php sockets extension (if available) to count hops by fuzzing TTL numbers, so you can define the scanned port you see, is a port forward or it's actually the host port.
 ---
 
 ## File Browser

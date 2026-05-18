@@ -66,11 +66,15 @@
 
       <!-- CONSOLE TAB -->
       <div class="tab-content active" id="tab-console">
+<!-- MODULE:console -->
         <div class="card">
-          <div class="card-header">
-            PHP Console
-            <div style="display:flex;align-items:center;gap:8px">
+          <div class="card-header card-header-3col">
+            <div class="card-header-left">PHP</div>
+            <div class="card-header-mid">
+              <span class="card-header-label">snippets:</span>
               <div id="snippet-buttons" class="btn-group"></div>
+            </div>
+            <div class="card-header-right">
               <div class="btn-group">
                 <button class="btn btn-sm btn-secondary" onclick="streamClear('console-output')">Clear</button>
                 <button class="btn btn-sm btn-secondary" onclick="streamCopy('console-output')"><svg class="icon" viewBox="0 0 16 16"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
@@ -86,12 +90,16 @@
             </div>
           </div>
         </div>
+<!-- /MODULE:console -->
+<!-- MODULE:shell -->
         <!-- OS Shell -->
         <div class="card" id="os-shell-card" style="display:none">
-          <div class="card-header">
-            OS Shell
-            <div style="display:flex;align-items:center;gap:8px">
-              <span id="os-shell-status"></span>
+          <div class="card-header card-header-3col">
+            <div class="card-header-left">Shell <span id="os-shell-status"></span></div>
+            <div class="card-header-mid">
+              <div id="shell-snippet-buttons" class="btn-group"></div>
+            </div>
+            <div class="card-header-right">
               <div class="btn-group">
                 <button class="btn btn-sm btn-secondary" onclick="streamClear('os-shell-output')">Clear</button>
                 <button class="btn btn-sm btn-secondary" onclick="streamCopy('os-shell-output')"><svg class="icon" viewBox="0 0 16 16"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
@@ -107,6 +115,7 @@
             </div>
           </div>
         </div>
+<!-- /MODULE:shell -->
       </div>
 
 <!-- MODULE:tunnel -->

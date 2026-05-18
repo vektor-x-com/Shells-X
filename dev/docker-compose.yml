@@ -1,0 +1,52 @@
+services:
+  shell:
+    build: .
+    ports:
+      - "8888:80"
+    volumes:
+      - ../dist:/var/www/html
+    environment:
+      - APACHE_LOG_DIR=/dev
+    restart: unless-stopped
+
+  # Target services for testing tunnel/scanner against internal network
+  target-web:
+    image: nginx:alpine
+    # No published ports — only reachable from the shell container
+  target-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: testdb
+    # No published ports
+  target-redis:
+    image: redis:alpine
+    # No published ports
+
+  # Simulated firewall doing real iptables DNAT — for testing the traceroute
+  # console snippet. Probe `fw` from the shell container:
+  #   :80   → nginx ON the firewall itself        → TTL N
+  #   :8443 → DNAT'd to fw-backend:6379           → TTL N+1
+  fw:
+    build:
+      context: .
+      dockerfile: Dockerfile.fw
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+    networks:
+      - default
+      - fw-backend-net
+    depends_on:
+      - fw-backend
+
+  fw-backend:
+    image: redis:alpine
+    networks:
+      - fw-backend-net
+    # Isolated on its own network; only the fw container can reach it.
+
+networks:
+  fw-backend-net:
+    internal: true

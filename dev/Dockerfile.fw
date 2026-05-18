@@ -1,0 +1,7 @@
+FROM alpine:3.19
+# iptables: real NAT/DNAT (decrements TTL like a real firewall).
+# nginx:    a "local" service on :80, so :80 vs :8443 on the same IP gives a TTL delta.
+RUN apk add --no-cache iptables nginx bind-tools && mkdir -p /run/nginx
+COPY fw-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"]

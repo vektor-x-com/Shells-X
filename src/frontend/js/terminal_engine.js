@@ -115,18 +115,24 @@ function _initHistory(adapter) {
         .filter(r => r && r.cmd && _cmdMatchesAdapter(r.cmd, adapter.id))
         .map(r => _stripMarker(r.cmd, adapter.historyMarker))
         .reverse();
-      const priorIdx = adapter.histIdx;
-      const priorLen = adapter.history.length;
+      // Remember the command the operator was recalling (if any) so we can
+      // restore their nav position by content after dedup may have shifted
+      // indices. Index-arithmetic preservation breaks once entries are
+      // collapsed; content-addressing survives.
+      const currentCmd = (adapter.histIdx >= 0 && adapter.histIdx < adapter.history.length)
+        ? adapter.history[adapter.histIdx]
+        : null;
       // Prepend prior-session history to whatever the operator pushed during
       // the IDB-load window. In-memory pushes are sync and canonical; IDB load
       // is treated as "older history" prefix data. This eliminates the race
       // where a command run during IDB load would otherwise be clobbered.
-      adapter.history = fromIdb.concat(adapter.history);
-      if (priorIdx < 0 || priorIdx >= priorLen) {
-        adapter.histIdx = adapter.history.length;
-      } else {
-        adapter.histIdx = priorIdx + fromIdb.length;
-      }
+      const merged = fromIdb.concat(adapter.history);
+      // Consecutive-dedup — same shape as _run's local push dedup and as
+      // bash HISTIGNOREDUPS. Collapses the common "ran X last session, ran X
+      // first this session" duplicate at the IDB/local boundary.
+      adapter.history = merged.filter((cmd, i) => cmd !== merged[i - 1]);
+      const restored = currentCmd !== null ? adapter.history.lastIndexOf(currentCmd) : -1;
+      adapter.histIdx = restored >= 0 ? restored : adapter.history.length;
     })
     .catch(() => { /* IDB unavailable — in-memory history still works for this session */ });
 }
@@ -245,6 +251,27 @@ function _run(adapterId) {
     .finally(() => { adapter.inFlight = false; });
 }
 
+// Write adapter-declared labels into the card header so adapters are the
+// source of truth (engine API matches what the UI actually shows). The
+// layout pre-seeds `.card-header-name` and `.card-header-label` spans —
+// targeting those keeps us from clobbering siblings like the OS-shell
+// status badge that lives inside `.card-header-left`.
+function _initLabels(adapter) {
+  const card = document.getElementById(adapter.outputEl)?.closest('.card');
+  if (!card) return;
+  const nameEl = card.querySelector('.card-header-name');
+  if (nameEl && adapter.displayName) nameEl.textContent = adapter.displayName;
+  const labelEl = card.querySelector('.card-header-label');
+  if (labelEl) {
+    if (adapter.hintsLabel) {
+      labelEl.textContent = adapter.hintsLabel + ':';
+      labelEl.hidden = false;
+    } else {
+      labelEl.hidden = true;
+    }
+  }
+}
+
 function bind(config) {
   const adapter = Object.assign({
     history: [],
@@ -254,6 +281,7 @@ function bind(config) {
     excludeMarkers: [],
   }, config);
   _adapters[adapter.id] = adapter;
+  _initLabels(adapter);
   _initSnippets(adapter);
   _initHistory(adapter);
   _initKeydown(adapter);

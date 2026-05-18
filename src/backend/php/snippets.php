@@ -1,6 +1,16 @@
 <?php
 
 // Inlined at build time — must assign, not return (top-level return would exit the shell).
+// AJAX actions never render the HTML template, so the array would just be allocated
+// and thrown away on every poll. Limit construction to the page-render path.
+//
+// Escape rule for snippet bodies:
+//   Snippets travel nowdoc → json_encode → JS string → operator runs them in PHP eval.
+//   Inside nowdoc (<<<'PHP') backslashes are literal. So:
+//     `\\n` here  →  JSON `"\\\\n"`  →  JS `"\\n"`  →  PHP eval sees `\n`  →  newline at runtime.
+//     `\n`  here  →  JSON `"\\n"`    →  JS real newline  →  PHP eval sees real newline char.
+//   The first form is usually what you want (matches how you'd write a PHP string literal).
+if (!isset($_POST['action'])) {
 $TERMINAL_SNIPPETS = [
         'php' => [
                 [
@@ -71,3 +81,4 @@ PHP
                 ],
         ],
 ];
+}

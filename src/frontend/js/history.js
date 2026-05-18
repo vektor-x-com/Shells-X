@@ -25,7 +25,7 @@ function renderHistory() {
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
       '<span class="history-cmd">' + escHtml(item.cmd.substring(0,80)) + (item.cmd.length>80?'...':'') + '</span>' +
       '<div style="display:flex;gap:6px;align-items:center">' +
-      '<span style="font-size:11px;color:var(--muted)">' + new Date(item.ts).toLocaleString() + '</span>' +
+      '<span style="font-size:11px;color:var(--muted)">' + new Date((item.ts || '').split('#')[0]).toLocaleString() + '</span>' +
       actions +
       '</div></div>' +
       '<div class="history-out">' + escHtml(item.out.substring(0,500)) + (item.out.length>500?'\n...(truncated)':'') + '</div>' +

@@ -22,8 +22,11 @@ MODULE_JS = {
     'files':       ['filebrowser.js'],
     'diagnostics': ['diagnostics.js'],
     'history':     ['history.js'],
-    'console':     ['console.js'],
+    'console':     ['terminal_php.js'],   # PHP-specific adapter; engine stays
+    'shell':       ['terminal_shell.js'], # OS Shell adapter; engine stays
     'faraday':     ['faraday.js'],
+    # terminal_engine.js is intentionally absent — always loaded so either
+    # adapter (console/shell, or future python/etc.) can call Terminal.bind().
 }
 
 

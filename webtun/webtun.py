@@ -578,7 +578,17 @@ async def tunnel_main(args):
                 body = await resp.text()
                 log.error(f'Open failed ({resp.status}): {body[:200]}')
                 return
-            result = await resp.json()
+            # Read as text first so we can show the raw body when the server
+            # returns something other than JSON (PHP warning, HTML error page,
+            # wrong route hit, web-server wrapper, ...). resp.json() would
+            # raise ContentTypeError and discard the body.
+            raw = await resp.text()
+            try:
+                result = json.loads(raw)
+            except json.JSONDecodeError:
+                ctype = resp.headers.get('Content-Type', '?')
+                log.error(f'Open failed: server returned non-JSON (Content-Type: {ctype}); body[:500]={raw[:500]!r}')
+                return
             if 'error' in result:
                 log.error(f'Open failed: {result["error"]}')
                 return

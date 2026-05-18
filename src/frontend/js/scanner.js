@@ -1,7 +1,16 @@
 // ==================== PORT SCANNER ====================
 const SCAN_POLL_MS = 1500;
 const _scanPollers = {}; // scanId -> { running, timer }
+const _scanPollGen = {}; // scanId -> generation (bump on destroy)
 let _scanRendering = false;
+let _scanRenderPending = false;
+
+const _SCAN_TERMINAL = { paused: 1, stopped: 1, done: 1 };
+
+function _scanMergeStatus(localStatus, remoteStatus) {
+  if (_SCAN_TERMINAL[localStatus] && remoteStatus === 'running') return localStatus;
+  return remoteStatus;
+}
 
 // Port presets — each one is a careful merge of Nmap's frequency-ranked set
 // (2008 public-internet survey, https://github.com/nmap/nmap/blob/master/nmap-services)
@@ -101,6 +110,7 @@ function scanControl(id, action) {
 
 function scanDestroy(id) {
   if (!confirm('Delete this scan and all its results?')) return;
+  _scanPollGen[id] = (_scanPollGen[id] || 0) + 1;
   scanStopPoller(id);
   const fd = new FormData();
   fd.append('action', 'scan_destroy');
@@ -138,16 +148,18 @@ function scanStopPoller(id) {
 }
 
 function scanPollOnce(id) {
+  const gen = _scanPollGen[id] || 0;
   return dbOpen().then(db => new Promise(res => {
     const g = db.transaction('scans', 'readonly').objectStore('scans').get(id);
     g.onsuccess = () => res(g.result);
   })).then(scan => {
-    if (!scan) { scanStopPoller(id); return; }
+    if (!scan || (_scanPollGen[id] || 0) !== gen) { scanStopPoller(id); return; }
     const fd = new FormData();
     fd.append('action', 'scan_poll');
     fd.append('id', id);
     fd.append('since', scan.next_offset || 0);
     return fetchJSON(fd).then(d => {
+      if ((_scanPollGen[id] || 0) !== gen) return;
       if (d.error) {
         // Scan vanished server-side (e.g. /tmp GC) — stop polling
         scanStopPoller(id);
@@ -163,7 +175,7 @@ function scanPollOnce(id) {
         g2.onsuccess = () => {
           const s = g2.result;
           if (s) {
-            s.status      = d.state.status;
+            s.status      = _scanMergeStatus(s.status, d.state.status);
             s.cursor      = d.state.cursor;
             s.total       = d.state.total;
             s.summary     = d.state.summary;
@@ -174,6 +186,7 @@ function scanPollOnce(id) {
           tx.oncomplete = () => res2(s);
         };
       })).then(s => {
+        if ((_scanPollGen[id] || 0) !== gen) return;
         if (s && (s.status === 'done' || s.status === 'stopped')) scanStopPoller(id);
         updateScanCard(id);
       });
@@ -206,10 +219,16 @@ function scanReattach() {
 }
 
 function renderScans() {
-  if (_scanRendering) return;
+  if (_scanRendering) {
+    _scanRenderPending = true;
+    return;
+  }
   _scanRendering = true;
   const body = document.getElementById('scans-body');
-  if (!body) { _scanRendering = false; return; }
+  if (!body) {
+    _scanRendering = false;
+    return;
+  }
   dbGetAll('scans').then(scans => {
     scans.sort((a, b) => (b.started_at || 0) - (a.started_at || 0));
     if (scans.length === 0) {
@@ -219,7 +238,13 @@ function renderScans() {
     body.innerHTML = scans.map(s => renderScanCard(s)).join('');
   }).catch(err => {
     body.innerHTML = '<div style="color:var(--red);font-size:13px;padding:12px">Error loading scans: ' + escHtml(String(err && err.message || err)) + '</div>';
-  }).then(() => { _scanRendering = false; });
+  }).then(() => {
+    _scanRendering = false;
+    if (_scanRenderPending) {
+      _scanRenderPending = false;
+      renderScans();
+    }
+  });
 }
 
 function _scanStatusColor(status) {

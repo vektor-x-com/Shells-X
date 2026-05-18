@@ -1,91 +1,65 @@
-"""Password-gated login screen.
+"""Password-gated login — language-specific auth gate + shared login HTML.
 
-Emitted as a PHP block that runs before the main shell renders: SHA256
-of the password is checked against an embedded hash; on success the
-browser-side AES key is derived from the same password (via Web Crypto
-in the login form's submit handler) and stashed in sessionStorage.
-
-The login markup lives in ``src/frontend/html/login.html`` — this
-module just substitutes the palette-derived placeholders and wraps the
-result in the PHP auth gate.
+Each backend language ships ``src/backend/<lang>/auth.<ext>`` with
+``@@AUTH_HASH@@`` and ``/*@@LOGIN_ECHO@@*/`` placeholders. This module
+renders the login page (shared frontend) and substitutes into the
+language template at build time.
 """
 
 import hashlib
+import os
+import re
+import sys
 
-from .config import read_file
-from .paths import LOGIN_HTML_PATH
-from .theme import lighten_hex
-
-
-# Default palette used when the operator builds with --password but no
-# theme — keeps the login page legible even without a custom palette.
-_LOGIN_DEFAULTS = {
-    '--bg': '#0d1117', '--panel': '#161b22', '--border': '#30363d',
-    '--text': '#c9d1d9', '--muted': '#8b949e', '--accent': '#58a6ff',
-    '--red': '#f85149',
-}
-
-
-def _resolve_login_palette(palette):
-    """Layer the operator palette over safe defaults and derive the two
-    helper colors the login HTML needs alongside the raw vars."""
-    colors = dict(_LOGIN_DEFAULTS)
-    if palette:
-        colors.update({k: v for k, v in palette.items() if k in colors})
-    return {
-        'root_vars':    ';'.join(f'{k}:{v}' for k, v in colors.items()),
-        'input_bg':     colors['--bg'],
-        'accent_hover': lighten_hex(colors['--accent'], 15),
-    }
+from .config import backend_auth_path, read_file
+from .paths import JS_DIR, LOGIN_CSS_PATH, LOGIN_HTML_PATH
+from .theme import generate_custom_css
 
 
 def _render_login_html(palette):
-    """Read the login template and substitute the three palette
-    placeholders. Returned string is raw HTML — not yet PHP-escaped."""
-    parts = _resolve_login_palette(palette)
+    """Login markup + sha256 shim; styles from login.css + optional theme override."""
+    login_css = read_file(LOGIN_CSS_PATH)
+    theme_css = generate_custom_css(palette)
+    styles = '<style>\n' + login_css
+    if theme_css:
+        styles += '\n' + theme_css
+    styles += '\n</style>'
+
     html = read_file(LOGIN_HTML_PATH)
+    sha256_js = read_file(os.path.join(JS_DIR, 'sha256.js'))
+    shim = f'<script>\n{sha256_js}\n</script>'
     return (
         html
-        .replace('{{ROOT_VARS}}',    parts['root_vars'])
-        .replace('{{INPUT_BG}}',     parts['input_bg'])
-        .replace('{{ACCENT_HOVER}}', parts['accent_hover'])
+        .replace('<!-- LOGIN_STYLES -->', styles)
+        .replace('<!-- CRYPTO_SHIM -->', shim)
     )
 
 
-def _php_single_quote_escape(s):
-    """Escape a string for embedding in a PHP single-quoted literal.
-    Only ``\\`` and ``'`` are special inside single quotes; everything
-    else (including newlines) is preserved verbatim."""
-    return s.replace('\\', '\\\\').replace("'", "\\'")
+def _strip_php_tags(code):
+    code = re.sub(r'^<\?php\s*', '', code)
+    return re.sub(r'\?>\s*$', '', code.strip())
 
 
-def build_auth_block(password, palette=None):
-    """Generate the PHP session-based auth block (runs before main shell).
+def _php_nowdoc_echo(html: str) -> str:
+    """Emit login HTML via nowdoc so auth.php stays pure PHP (no ?>…<?php)."""
+    delim = '__SX_LOGIN__'
+    while delim in html:
+        delim = f'__SX_LOGIN_{os.urandom(4).hex()}__'
+    return f"echo <<<'{delim}'\n{html}\n{delim};"
 
-    The login form's JavaScript hashes the password client-side and
-    stores the hex digest in ``sessionStorage['__enc_key']`` so subsequent
-    AES-encrypted XHRs can use it without re-prompting.
-    """
+
+def build_auth_block(lang, password, palette=None):
+    """Load ``auth.<ext>`` for *lang*, inject hash + login HTML."""
+    auth_path = backend_auth_path(lang)
+    if not os.path.exists(auth_path):
+        print(f'[!] Auth template not found for --lang {lang}: {auth_path}')
+        sys.exit(1)
+
     pw_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
-    login_html = _php_single_quote_escape(_render_login_html(palette))
-
-    return f"""$__AUTH_HASH = '{pw_hash}';
-session_start();
-if (isset($_POST['__auth_pass'])) {{
-    if (hash_equals($__AUTH_HASH, hash('sha256', $_POST['__auth_pass']))) {{
-        $_SESSION['__authed'] = true;
-        header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
-        exit;
-    }}
-}}
-if (isset($_GET['logout'])) {{
-    session_destroy();
-    header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
-    exit;
-}}
-if (empty($_SESSION['__authed'])) {{
-    ob_end_clean();
-    header('Content-Type: text/html; charset=UTF-8');
-    echo '{login_html}';
-    exit;
-}}"""
+    login_html = _render_login_html(palette)
+    block = _strip_php_tags(read_file(auth_path))
+    return (
+        block
+        .replace('@@AUTH_HASH@@', pw_hash)
+        .replace('/*@@LOGIN_ECHO@@*/', _php_nowdoc_echo(login_html))
+    )

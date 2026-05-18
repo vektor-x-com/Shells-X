@@ -1,5 +1,7 @@
 [
     "core",
+    "sha256",
+    "aesjs",
     "crypto",
     "db",
     "faraday",

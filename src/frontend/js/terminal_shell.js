@@ -20,7 +20,7 @@ function probeShell() {
         shellAvailable = true;
         shellMethod = data.method;
         shellCwd = data.cwd;
-        card.style.display = 'block';
+        card.classList.remove('is-hidden');
         status.innerHTML = '<span class="badge badge-ok">&#x2714; OS shell via <b>' + escHtml(shellMethod) + '()</b></span>';
         document.getElementById('os-shell-prompt').textContent = shellCwd + ' $';
         document.getElementById('os-shell-input').placeholder = 'shell command  ·  Enter runs  ·  Shift+Enter newline  ·  ↑/↓ history  ·  Ctrl+L clear';
@@ -58,14 +58,14 @@ function probeShell() {
           },
         });
       } else {
-        card.style.display = 'block';
+        card.classList.remove('is-hidden');
         status.innerHTML = '<span class="badge badge-no">&#x2716; No exec function available</span>';
         document.getElementById('os-shell-input').disabled = true;
         document.getElementById('os-shell-input').placeholder = 'OS shell unavailable — all exec functions are disabled';
       }
     })
     .catch(() => {
-      card.style.display = 'block';
+      card.classList.remove('is-hidden');
       status.innerHTML = '<span class="badge badge-no">&#x2716; Probe failed</span>';
       // Without bind() we'd leave a live-looking input that silently swallows
       // every key — disable it and tell the operator how to recover.

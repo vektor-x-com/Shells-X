@@ -29,6 +29,7 @@ $dir = realpath($dir) ?: $dir;
 {{HTML_BODY}}
 
 <script>
+window.TERMINAL_SNIPPETS = <?= json_encode($TERMINAL_SNIPPETS ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
 const __BUILD = {{BUILD_META_JSON}};
 {{JS}}
 </script>

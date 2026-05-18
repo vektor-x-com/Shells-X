@@ -3,8 +3,12 @@
 import json
 import os
 import re
+import sys
 
-from .paths import CONFIG_PATH
+from .paths import BACKEND_DIR, CONFIG_PATH
+
+# Language → source/output extension (backend files and dist filename).
+SCRIPT_EXTENSIONS = {'php': '.php', 'aspx': '.aspx', 'jsp': '.jsp', 'py': '.py'}
 
 # Module → file mapping for --exclude. The tunnel module's PHP is not listed
 # because it's injected from an external path via --tunnel, not from
@@ -13,7 +17,7 @@ MODULE_BACKEND = {
     'scanner':     ['scanner.php'],
     'files':       ['filebrowser.php', 'fileops.php'],
     'diagnostics': ['diagnostics.php'],
-    'console':     ['eval.php'],
+    'console':     ['eval.php', 'snippets.php'],
 }
 
 MODULE_JS = {
@@ -22,8 +26,11 @@ MODULE_JS = {
     'files':       ['filebrowser.js'],
     'diagnostics': ['diagnostics.js'],
     'history':     ['history.js'],
-    'console':     ['console.js'],
+    'console':     ['terminal_php.js'],   # PHP-specific adapter; engine stays
+    'shell':       ['terminal_shell.js'], # OS Shell adapter; engine stays
     'faraday':     ['faraday.js'],
+    # terminal_engine.js is intentionally absent — always loaded so either
+    # adapter (console/shell, or future python/etc.) can call Terminal.bind().
 }
 
 
@@ -39,22 +46,26 @@ def read_file(path):
         return f.read()
 
 
-def load_ordered_files(directory, extension, order_file='_order.json'):
-    """Return file paths in the order specified by _order.json, or
-    alphabetical (excluding underscore-prefixed files) as fallback."""
+def backend_auth_path(lang):
+    """Path to the language-specific auth gate source (e.g. ``auth.php``)."""
+    ext = SCRIPT_EXTENSIONS.get(lang, f'.{lang}')
+    return os.path.join(BACKEND_DIR(lang), f'auth{ext}')
+
+
+def load_ordered_filepaths(directory, extension, order_file='_order.json'):
+    """Return file paths in the order specified by _order.json.
+
+  Without ``_order.json`` the module order is undefined — abort the build."""
     order_path = os.path.join(directory, order_file)
-    if os.path.exists(order_path):
-        with open(order_path, 'r') as f:
-            order = json.load(f)
-        return [os.path.join(directory, name + extension) for name in order]
-    files = sorted(
-        f for f in os.listdir(directory)
-        if f.endswith(extension) and not f.startswith('_')
-    )
-    return [os.path.join(directory, f) for f in files]
+    if not os.path.exists(order_path):
+        print(f'[!] Cannot build: missing order file: {order_path}')
+        sys.exit(1)
+    with open(order_path, 'r') as f:
+        order = json.load(f)
+    return [os.path.join(directory, name + extension) for name in order]
 
 
-def get_excluded_files(exclude_modules):
+def get_excluded_filepaths(exclude_modules):
     """Map a set of module names to the concrete backend + JS files to
     skip during assembly. Unknown modules quietly contribute nothing —
     the CLI layer is responsible for rejecting --exclude on required

@@ -1,14 +1,22 @@
 // ==================== INDEXEDDB STORAGE ====================
 const DB_NAME = 'shelldb', DB_VER = 3;
 let _db = null;
+let _dbOpenPromise = null;
 
 function dbOpen() {
   if (_db) return Promise.resolve(_db);
-  return new Promise((res, rej) => {
+  if (_dbOpenPromise) return _dbOpenPromise;
+  _dbOpenPromise = new Promise((res, rej) => {
     const req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = e => {
       const db = e.target.result;
-      // Clean slate — drop any prior stores and recreate the v2 schema
+      if (db.objectStoreNames.length > 0) {
+        console.warn(
+          'Shells-X: IndexedDB schema upgraded (v' + DB_VER + ') — ' +
+          'local command history and scan cache were cleared for this origin.'
+        );
+      }
+      // Clean slate — drop any prior stores and recreate the current schema
       Array.from(db.objectStoreNames).forEach(name => db.deleteObjectStore(name));
       db.createObjectStore('history', { keyPath: 'ts' });
       db.createObjectStore('scans', { keyPath: 'id' });
@@ -25,11 +33,15 @@ function dbOpen() {
     };
     req.onsuccess = e => {
       _db = e.target.result;
-      _db.onversionchange = () => { _db.close(); _db = null; };
+      _db.onversionchange = () => { _db.close(); _db = null; _dbOpenPromise = null; };
       res(_db);
     };
-    req.onerror   = e => rej(e.target.error);
+    req.onerror = e => {
+      _dbOpenPromise = null;
+      rej(e.target.error);
+    };
   });
+  return _dbOpenPromise;
 }
 
 function dbGetAll(store) {

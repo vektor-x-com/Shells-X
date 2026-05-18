@@ -208,8 +208,12 @@ if ($__wt_action === 'send') {
 if ($__wt_action === 'status') {
     while (@ob_get_level()) @ob_end_clean();
     header('Content-Type: application/json');
-    // No key auth required — status is read-only operational info.
-    // The shell's own auth (password/session) already gates access to this endpoint.
+    // Password-protected shells: require tunnel key (webtun.py) OR PHP session (UI tab).
+    if (isset($__AUTH_HASH) && !$__wt_check_key() && empty($_SESSION['__authed'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'auth']);
+        exit;
+    }
 
     $sessions = [];
     foreach (@glob($__wt_prefix . '*_state.json') ?: [] as $f) {

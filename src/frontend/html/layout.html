@@ -1,45 +1,46 @@
 <div class="layout">
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-header">{{SHELL_TITLE}}</div>
-    <ul class="sidebar-nav">
-      <li><a href="#" class="active" data-tab="console"><svg class="icon" viewBox="0 0 16 16"><path d="M1 2v12h14V2zm12 2v8H3V4zM5 6l1-1 3 3-3 3-1-1 2-2zm3 4h4v1H8z"/></svg>Console</a></li>
+  <aside class="sidebar">
+    <header class="sidebar-header">{{SHELL_TITLE}}</header>
+    <nav aria-label="Main">
+      <ul class="sidebar-nav">
+        <li><a href="#" class="active" data-tab="console"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 2v12h14V2zm12 2v8H3V4zM5 6l1-1 3 3-3 3-1-1 2-2zm3 4h4v1H8z"/></svg>Console</a></li>
 <!-- MODULE:tunnel -->
-      <li><a href="#" data-tab="tunnel"><svg class="icon" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 2c.7 0 1.5.5 2.2 1.3L8 5 5.8 3.3C6.5 2.5 7.3 2 8 2zM4.4 4.5L7 6.5v2L4 11l-.5.5C2.6 10.5 2 9.3 2 8c0-1.3.5-2.5 1.4-3.5zM12.6 4.5C13.5 5.5 14 6.7 14 8c0 1.3-.5 2.5-1.4 3.5L12 11 9 8.5v-2zM7 10.5l1 1 1-1 2 2c-.7.5-1.8 1-3 1s-2.3-.5-3-1z"/></svg>Tunnel</a></li>
+        <li><a href="#" data-tab="tunnel"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 2c.7 0 1.5.5 2.2 1.3L8 5 5.8 3.3C6.5 2.5 7.3 2 8 2zM4.4 4.5L7 6.5v2L4 11l-.5.5C2.6 10.5 2 9.3 2 8c0-1.3.5-2.5 1.4-3.5zM12.6 4.5C13.5 5.5 14 6.7 14 8c0 1.3-.5 2.5-1.4 3.5L12 11 9 8.5v-2zM7 10.5l1 1 1-1 2 2c-.7.5-1.8 1-3 1s-2.3-.5-3-1z"/></svg>Tunnel</a></li>
 <!-- /MODULE:tunnel -->
-      <li><a href="#" data-tab="files"><svg class="icon" viewBox="0 0 16 16"><path d="M1 3v10h14V5H7L5 3z"/></svg>Files</a></li>
+        <li><a href="#" data-tab="files"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3v10h14V5H7L5 3z"/></svg>Files</a></li>
 <!-- MODULE:scanner -->
-      <li><a href="#" data-tab="scanner"><svg class="icon" viewBox="0 0 16 16"><path d="M6.5 1a5.5 5.5 0 014.4 8.8l3.8 3.8-1.4 1.4-3.8-3.8A5.5 5.5 0 116.5 1zm0 2a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"/></svg>Scanner</a></li>
+        <li><a href="#" data-tab="scanner"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 1a5.5 5.5 0 014.4 8.8l3.8 3.8-1.4 1.4-3.8-3.8A5.5 5.5 0 116.5 1zm0 2a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"/></svg>Scanner</a></li>
 <!-- /MODULE:scanner -->
 <!-- MODULE:diagnostics -->
-      <li><a href="#" data-tab="diag"><svg class="icon" viewBox="0 0 16 16"><path d="M7 0v2.2A6 6 0 005.1 3l-1.6-1.6-1.4 1.4 1.6 1.6A6 6 0 002.2 6H0v2h2.2c.2.7.4 1.3.8 1.9L1.4 11.5l1.4 1.4 1.6-1.6c.6.4 1.2.6 1.9.8V14h2v-2.2c.7-.2 1.3-.4 1.9-.8l1.6 1.6 1.4-1.4-1.6-1.6c.4-.6.6-1.2.8-1.9H16V6h-2.2a6 6 0 00-.8-1.9l1.6-1.6-1.4-1.4-1.6 1.6A6 6 0 0010 2.2V0zm1 5a3 3 0 110 6 3 3 0 010-6z"/></svg>Diagnostics</a></li>
+        <li><a href="#" data-tab="diag"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M7 0v2.2A6 6 0 005.1 3l-1.6-1.6-1.4 1.4 1.6 1.6A6 6 0 002.2 6H0v2h2.2c.2.7.4 1.3.8 1.9L1.4 11.5l1.4 1.4 1.6-1.6c.6.4 1.2.6 1.9.8V14h2v-2.2c.7-.2 1.3-.4 1.9-.8l1.6 1.6 1.4-1.4-1.6-1.6c.4-.6.6-1.2.8-1.9H16V6h-2.2a6 6 0 00-.8-1.9l1.6-1.6-1.4-1.4-1.6 1.6A6 6 0 0010 2.2V0zm1 5a3 3 0 110 6 3 3 0 010-6z"/></svg>Diagnostics</a></li>
 <!-- /MODULE:diagnostics -->
 <!-- MODULE:history -->
-      <li><a href="#" data-tab="history"><svg class="icon" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 2a6 6 0 110 12A6 6 0 018 2zm-1 2v5l4 2.5.8-1.4L8.5 8.2V4z"/></svg>History</a></li>
+        <li><a href="#" data-tab="history"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 2a6 6 0 110 12A6 6 0 018 2zm-1 2v5l4 2.5.8-1.4L8.5 8.2V4z"/></svg>History</a></li>
 <!-- /MODULE:history -->
-    </ul>
-    <div style="margin-top:auto;padding:12px;border-top:1px solid var(--border)">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:.5px">DATABASE</div>
-      <button class="btn btn-sm btn-secondary" onclick="exportDB()" style="width:100%;margin-bottom:6px"><svg class="icon" viewBox="0 0 16 16"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Export DB</button>
-      <button class="btn btn-sm btn-secondary" onclick="document.getElementById('db-import-file').click()" style="width:100%"><svg class="icon" viewBox="0 0 16 16"><path d="M8 1L3.1 5.9l1.4 1.4L7 4.8V12h2V4.8l2.5 2.5 1.4-1.4zM2 13v2h12v-2z"/></svg> Import DB</button>
-      <input type="file" id="db-import-file" accept=".json" style="display:none" onchange="importDB(this)">
+      </ul>
+    </nav>
+    <div class="sidebar-footer">
+      <p class="sidebar-section-label">DATABASE</p>
+      <button type="button" class="btn btn-sm btn-secondary btn--block-gap" onclick="exportDB()"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Export DB</button>
+      <button type="button" class="btn btn-sm btn-secondary btn--block" onclick="document.getElementById('db-import-file').click()"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1L3.1 5.9l1.4 1.4L7 4.8V12h2V4.8l2.5 2.5 1.4-1.4zM2 13v2h12v-2z"/></svg> Import DB</button>
+      <input type="file" id="db-import-file" accept=".json" hidden onchange="importDB(this)">
 <!-- MODULE:faraday -->
-      <div class="faraday-split-wrap" style="margin-top:6px">
+      <div class="faraday-split-wrap">
         <div class="split-btn" role="group">
-          <button class="btn btn-sm btn-secondary split-btn-main" onclick="faradayExportAll()" title="Export all scans + last diagnostics blob as a faraday_json file">&#x2191; Faraday export</button>
-          <button class="btn btn-sm btn-secondary split-btn-toggle" onclick="faradayToggleSettings()" aria-expanded="false" aria-controls="faraday-settings-panel" title="Export settings"><span class="split-btn-chev">&#x25BE;</span></button>
+          <button type="button" class="btn btn-sm btn-secondary split-btn-main" onclick="faradayExportAll()" title="Export all scans + last diagnostics blob as a faraday_json file">&#x2191; Faraday export</button>
+          <button type="button" class="btn btn-sm btn-secondary split-btn-toggle" onclick="faradayToggleSettings()" aria-expanded="false" aria-controls="faraday-settings-panel" title="Export settings"><span class="split-btn-chev">&#x25BE;</span></button>
         </div>
         <div id="faraday-settings-panel" class="faraday-settings-panel" hidden>
           <label class="faraday-field">
             <span>Workspace</span>
-            <input class="form-control" id="faraday-workspace" placeholder="acme-2026q2">
+            <input type="text" class="form-control" id="faraday-workspace" placeholder="acme-2026q2">
           </label>
           <label class="faraday-field">
             <span>Operator tag</span>
-            <input class="form-control" id="faraday-user" placeholder="operator">
+            <input type="text" class="form-control" id="faraday-user" placeholder="operator">
           </label>
           <div class="faraday-actions">
-            <button class="btn btn-sm btn-primary" onclick="faradaySaveSettings()">Save</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="faradaySaveSettings()">Save</button>
             <span id="faraday-save-status"></span>
           </div>
           <div class="faraday-help">
@@ -49,165 +50,170 @@
       </div>
 <!-- /MODULE:faraday -->
     </div>
-    <div style="padding:8px 12px;border-top:1px solid var(--border)">
-      <button class="btn btn-sm btn-danger" onclick="selfDestruct()" style="width:100%"><svg class="icon" viewBox="0 0 16 16"><path d="M11 1l-.7.7 1 1L10 4.1A5 5 0 105 9a5 5 0 005 5 5 5 0 005-5 5 5 0 00-2-4l1.3-1.3 1 1L15 4z"/></svg> Self-Destruct</button>
+    <div class="sidebar-footer--compact">
+      <button type="button" class="btn btn-sm btn-danger btn--block" onclick="selfDestruct()"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M11 1l-.7.7 1 1L10 4.1A5 5 0 105 9a5 5 0 005 5 5 5 0 005-5 5 5 0 00-2-4l1.3-1.3 1 1L15 4z"/></svg> Self-Destruct</button>
     </div>
-  </div>
+  </aside>
 
-  <!-- Main -->
-  <div class="main">
-    <div class="topbar">
+  <main class="main">
+    <header class="topbar">
       <span class="path" id="current-path">{{INITIAL_DIR}}</span>
 <!-- MODULE:history -->
-      <button class="btn btn-sm btn-danger" onclick="clearHistory()">Clear History</button>
+      <button type="button" class="btn btn-sm btn-danger" onclick="clearHistory()">Clear History</button>
 <!-- /MODULE:history -->
-    </div>
+    </header>
     <div class="content">
 
-      <!-- CONSOLE TAB -->
-      <div class="tab-content active" id="tab-console">
-        <div class="card">
-          <div class="card-header">
-            PHP Console
-            <div style="display:flex;align-items:center;gap:8px">
+      <section class="tab-content active" id="tab-console" aria-label="Console">
+<!-- MODULE:console -->
+        <article class="card">
+          <header class="card-header card-header-3col">
+            <div class="card-header-left">PHP</div>
+            <div class="card-header-mid">
+              <span class="card-header-label">snippets:</span>
               <div id="snippet-buttons" class="btn-group"></div>
+            </div>
+            <div class="card-header-right">
               <div class="btn-group">
-                <button class="btn btn-sm btn-secondary" onclick="streamClear('console-output')">Clear</button>
-                <button class="btn btn-sm btn-secondary" onclick="streamCopy('console-output')"><svg class="icon" viewBox="0 0 16 16"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
-                <button class="btn btn-sm btn-secondary" onclick="streamDownload('console-output','php-console')"><svg class="icon" viewBox="0 0 16 16"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Download</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="streamClear('console-output')">Clear</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="streamCopy('console-output')"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="streamDownload('console-output','php-console')"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Download</button>
               </div>
             </div>
-          </div>
-          <div class="card-body" style="padding:0">
-            <div class="terminal-stream" id="console-output" style="min-height:240px;max-height:480px"></div>
+          </header>
+          <div class="card-body card-body--flush">
+            <div class="terminal-stream terminal-stream--tall" id="console-output" role="log" aria-live="polite"></div>
             <div class="terminal-composer">
-              <span class="terminal-prefix">php&gt;</span>
+              <label class="sr-only" for="console-input">PHP code</label>
+              <span class="terminal-prefix" aria-hidden="true">php&gt;</span>
               <textarea id="console-input" class="terminal-input" placeholder="PHP code  ·  Enter runs  ·  Shift+Enter newline  ·  ↑/↓ history" spellcheck="false"></textarea>
             </div>
           </div>
-        </div>
-        <!-- OS Shell -->
-        <div class="card" id="os-shell-card" style="display:none">
-          <div class="card-header">
-            OS Shell
-            <div style="display:flex;align-items:center;gap:8px">
-              <span id="os-shell-status"></span>
+        </article>
+<!-- /MODULE:console -->
+<!-- MODULE:shell -->
+        <article class="card is-hidden" id="os-shell-card">
+          <header class="card-header card-header-3col">
+            <div class="card-header-left">Shell <span id="os-shell-status"></span></div>
+            <div class="card-header-mid">
+              <div id="shell-snippet-buttons" class="btn-group"></div>
+            </div>
+            <div class="card-header-right">
               <div class="btn-group">
-                <button class="btn btn-sm btn-secondary" onclick="streamClear('os-shell-output')">Clear</button>
-                <button class="btn btn-sm btn-secondary" onclick="streamCopy('os-shell-output')"><svg class="icon" viewBox="0 0 16 16"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
-                <button class="btn btn-sm btn-secondary" onclick="streamDownload('os-shell-output','os-shell')"><svg class="icon" viewBox="0 0 16 16"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Download</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="streamClear('os-shell-output')">Clear</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="streamCopy('os-shell-output')"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="streamDownload('os-shell-output','os-shell')"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Download</button>
               </div>
             </div>
-          </div>
-          <div class="card-body" style="padding:0">
-            <div class="terminal-stream" id="os-shell-output" style="min-height:240px;max-height:480px"></div>
+          </header>
+          <div class="card-body card-body--flush">
+            <div class="terminal-stream terminal-stream--tall" id="os-shell-output" role="log" aria-live="polite"></div>
             <div class="terminal-composer">
-              <span class="terminal-prefix" id="os-shell-prompt">$</span>
+              <label class="sr-only" for="os-shell-input">Shell command</label>
+              <span class="terminal-prefix" id="os-shell-prompt" aria-hidden="true">$</span>
               <textarea id="os-shell-input" class="terminal-input" placeholder="shell command  ·  Enter runs  ·  Shift+Enter newline  ·  ↑/↓ history  ·  Ctrl+L clear" autocomplete="off" spellcheck="false"></textarea>
             </div>
           </div>
-        </div>
-      </div>
+        </article>
+<!-- /MODULE:shell -->
+      </section>
 
 <!-- MODULE:tunnel -->
-      <!-- TUNNEL TAB -->
-      <div class="tab-content" id="tab-tunnel">
-        <div class="card">
-          <div class="card-header">
+      <section class="tab-content" id="tab-tunnel" aria-label="Tunnel">
+        <article class="card">
+          <header class="card-header">
             Multiplexed Tunnel
             <div class="btn-group">
-              <span id="tunnel-status" style="font-size:12px;color:var(--muted)">Idle</span>
-              <button class="btn btn-sm btn-secondary" onclick="tunnelRefresh()"><svg class="icon" viewBox="0 0 16 16"><path d="M8 2a6 6 0 00-6 6h1.5A4.5 4.5 0 018 3.5c1 0 1.8.3 2.5.8L9 6h5V1l-1.5 1.5A6 6 0 008 2zm6 6h-1.5A4.5 4.5 0 018 12.5c-1 0-1.8-.3-2.5-.8L7 10H2v5l1.5-1.5A6 6 0 008 14a6 6 0 006-6z"/></svg> Refresh</button>
+              <span id="tunnel-status">Idle</span>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="tunnelRefresh()"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 00-6 6h1.5A4.5 4.5 0 018 3.5c1 0 1.8.3 2.5.8L9 6h5V1l-1.5 1.5A6 6 0 008 2zm6 6h-1.5A4.5 4.5 0 018 12.5c-1 0-1.8-.3-2.5-.8L7 10H2v5l1.5-1.5A6 6 0 008 14a6 6 0 006-6z"/></svg> Refresh</button>
             </div>
-          </div>
+          </header>
           <div class="card-body">
-            <div style="margin-bottom:16px;color:var(--muted);font-size:13px">
-              Multiplexed HTTP tunnel with SOCKS5 proxy &amp; port forwarding. Use with <span style="color:var(--yellow);font-family:monospace">webtun.py</span> client.
-            </div>
-            <div style="margin-bottom:12px">
-              <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Tunnel Endpoint URL:</div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <input class="form-control" id="tunnel-url" readonly style="flex:1;font-family:monospace;font-size:12px">
-                <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('tunnel-url').value).then(()=>this.textContent='Copied!',()=>{})"><svg class="icon" viewBox="0 0 16 16"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
+            <p class="text-muted mb-16">
+              Multiplexed HTTP tunnel with SOCKS5 proxy &amp; port forwarding. Use with <span class="text-yellow mono-sm">webtun.py</span> client.
+            </p>
+            <div class="mb-12">
+              <div class="form-label">Tunnel Endpoint URL:</div>
+              <div class="flex-row">
+                <input type="text" class="form-control form-control--grow" id="tunnel-url" readonly>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('tunnel-url').value).then(()=>this.textContent='Copied!',()=>{})"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
               </div>
             </div>
-            <div style="margin-bottom:12px">
-              <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Client commands:</div>
-              <code id="tunnel-cmd" style="display:block;background:rgba(0,0,0,.3);padding:10px;border-radius:4px;font-size:12px;color:var(--green);word-break:break-all"></code>
-              <code id="tunnel-cmd-fwd" style="display:block;background:rgba(0,0,0,.3);padding:6px 10px;border-radius:4px;font-size:11px;color:var(--muted);margin-top:4px;word-break:break-all"></code>
+            <div class="mb-12">
+              <div class="form-label">Client commands:</div>
+              <code class="code-block" id="tunnel-cmd"></code>
+              <code class="code-block code-block--sm" id="tunnel-cmd-fwd"></code>
             </div>
-            <button class="btn btn-primary" onclick="tunnelCheck()"><svg class="icon" viewBox="0 0 16 16"><path d="M5 1v4H4v3a3 3 0 002 2.8V12a2 2 0 002 2 2 2 0 002-2v-1.2A3 3 0 0012 8V5h-1V1h-1v4H6V1z"/></svg> Test Connection</button>
-            <div id="tunnel-test-result" style="margin-top:10px;font-size:12px"></div>
+            <button type="button" class="btn btn-primary" onclick="tunnelCheck()"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 1v4H4v3a3 3 0 002 2.8V12a2 2 0 002 2 2 2 0 002-2v-1.2A3 3 0 0012 8V5h-1V1h-1v4H6V1z"/></svg> Test Connection</button>
+            <div id="tunnel-test-result"></div>
           </div>
-        </div>
-        <div class="card">
-          <div class="card-header">Active Sessions</div>
+        </article>
+        <article class="card">
+          <header class="card-header">Active Sessions</header>
           <div class="card-body" id="tunnel-sessions">
-            <div style="color:var(--muted);font-size:13px">No active tunnel sessions. Start tunnel from Python client.</div>
+            <p class="empty-state">No active tunnel sessions. Start tunnel from Python client.</p>
           </div>
-        </div>
-        <div class="card">
-          <div class="card-header">Requirements</div>
+        </article>
+        <article class="card">
+          <header class="card-header">Requirements</header>
           <div class="card-body" id="tunnel-reqs">
-            <div style="color:var(--muted);font-size:13px">Click "Test Connection" to check server capabilities.</div>
+            <p class="empty-state">Click &quot;Test Connection&quot; to check server capabilities.</p>
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
 <!-- /MODULE:tunnel -->
 
-      <!-- FILES TAB -->
-      <div class="tab-content" id="tab-files">
-        <div class="card">
-          <div class="card-header files-toolbar">
+      <section class="tab-content" id="tab-files" aria-label="Files">
+        <article class="card">
+          <header class="card-header files-toolbar">
             <span class="files-toolbar-title">File Browser</span>
-            <input class="form-control files-path" id="files-path-input" value="{{INITIAL_DIR}}">
-            <button class="btn btn-sm btn-primary" onclick="browseDir(document.getElementById('files-path-input').value)">Go</button>
-            <span class="files-toolbar-sep"></span>
+            <input type="text" class="form-control files-path" id="files-path-input" value="{{INITIAL_DIR}}" aria-label="Directory path">
+            <button type="button" class="btn btn-sm btn-primary" onclick="browseDir(document.getElementById('files-path-input').value)">Go</button>
+            <span class="files-toolbar-sep" aria-hidden="true"></span>
             <input type="file" id="upload-input" class="files-upload-input" title="Choose file to upload to current directory">
-            <button class="btn btn-sm btn-primary" onclick="uploadFile()" title="Upload chosen file to current directory"><svg class="icon" viewBox="0 0 16 16"><path d="M8 1L3.1 5.9l1.4 1.4L7 4.8V12h2V4.8l2.5 2.5 1.4-1.4zM2 13v2h12v-2z"/></svg> Upload</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="uploadFile()" title="Upload chosen file to current directory"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1L3.1 5.9l1.4 1.4L7 4.8V12h2V4.8l2.5 2.5 1.4-1.4zM2 13v2h12v-2z"/></svg> Upload</button>
             <span id="upload-status" class="files-upload-status"></span>
-          </div>
-          <div class="card-body" style="padding:0">
+          </header>
+          <div class="card-body card-body--flush">
             <div id="files-body">
-              <div style="padding:16px;color:var(--muted);font-size:13px">Loading...</div>
+              <p class="empty-state--pad">Loading...</p>
             </div>
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
 
 <!-- MODULE:scanner -->
-      <!-- SCANNER TAB -->
-      <div class="tab-content" id="tab-scanner">
-        <div class="card">
-          <div class="card-header">
+      <section class="tab-content" id="tab-scanner" aria-label="Scanner">
+        <article class="card">
+          <header class="card-header">
             New Port Scan
-            <span style="font-size:11px;color:var(--muted)">runs in background — navigate freely</span>
-          </div>
+            <span class="card-header-hint">runs in background — navigate freely</span>
+          </header>
           <div class="card-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div class="grid-2">
               <div>
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Targets (CIDR, IPs, hosts, a.b.c.x-y)</div>
-                <input class="form-control" id="scan-targets" placeholder="192.168.1.0/24, 10.0.0.1, host.local">
+                <label class="form-label" for="scan-targets">Targets (CIDR, IPs, hosts, a.b.c.x-y)</label>
+                <input type="text" class="form-control" id="scan-targets" placeholder="192.168.1.0/24, 10.0.0.1, host.local">
               </div>
               <div>
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
-                  <span>Ports (csv + ranges)</span>
-                  <span style="font-size:10px;color:var(--muted)">presets (Nmap freq):</span>
+                <div class="form-label-row">
+                  <label for="scan-ports">Ports (csv + ranges)</label>
+                  <span class="text-muted-2xs">presets (Nmap freq):</span>
                 </div>
-                <input class="form-control" id="scan-ports" placeholder="22,80,443,8000-8100" value="21,22,23,25,80,110,143,443,3306,3389,5432,5900,6379,8080,8443,9200,11211,27017">
-                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
-                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('tcp_small')" title="TCP·small (30 ports) — quick triage: Nmap top-20 + modern essentials (SSH-alt, Grafana, Postgres, WinRM, Redis, k8s API, ES, Mongo)">TCP·small</button>
-                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('tcp_common')" title="TCP·common (136 ports) — Nmap top-100 ∪ modern stack: containers, modern DBs/caches, brokers, observability, IoT">TCP·common</button>
-                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('tcp_all')" title="TCP·all (1-65535) — exhaustive, slow">TCP·all</button>
-                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('udp_small')" title="UDP·small (18 ports) — Nmap top-15 + IPsec NAT-T (4500), mDNS (5353), WireGuard (51820)">UDP·small</button>
-                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('udp_common')" title="UDP·common (51 ports) — Nmap top-50 + WireGuard">UDP·common</button>
-                  <button type="button" class="btn btn-sm btn-secondary" style="font-size:10px;padding:2px 6px" onclick="scanFillPorts('udp_all')" title="UDP 1-1024 well-known range">UDP·all</button>
+                <input type="text" class="form-control" id="scan-ports" placeholder="22,80,443,8000-8100" value="21,22,23,25,80,110,143,443,3306,3389,5432,5900,6379,8080,8443,9200,11211,27017">
+                <div class="flex-wrap-gap">
+                  <button type="button" class="btn btn-sm btn-secondary btn-preset" onclick="scanFillPorts('tcp_small')" title="TCP·small (30 ports) — quick triage: Nmap top-20 + modern essentials">TCP·small</button>
+                  <button type="button" class="btn btn-sm btn-secondary btn-preset" onclick="scanFillPorts('tcp_common')" title="TCP·common (136 ports) — Nmap top-100 ∪ modern stack">TCP·common</button>
+                  <button type="button" class="btn btn-sm btn-secondary btn-preset" onclick="scanFillPorts('tcp_all')" title="TCP·all (1-65535) — exhaustive, slow">TCP·all</button>
+                  <button type="button" class="btn btn-sm btn-secondary btn-preset" onclick="scanFillPorts('udp_small')" title="UDP·small (18 ports)">UDP·small</button>
+                  <button type="button" class="btn btn-sm btn-secondary btn-preset" onclick="scanFillPorts('udp_common')" title="UDP·common (51 ports)">UDP·common</button>
+                  <button type="button" class="btn btn-sm btn-secondary btn-preset" onclick="scanFillPorts('udp_all')" title="UDP 1-1024 well-known range">UDP·all</button>
                 </div>
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">
+            <div class="grid-4">
               <div>
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Protocol</div>
+                <label class="form-label" for="scan-proto">Protocol</label>
                 <select class="form-control" id="scan-proto">
                   <option value="tcp" selected>TCP</option>
                   <option value="udp">UDP</option>
@@ -215,72 +221,70 @@
                 </select>
               </div>
               <div>
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Concurrency</div>
+                <label class="form-label" for="scan-concurrency">Concurrency</label>
                 <input class="form-control" id="scan-concurrency" type="number" min="1" max="512" value="64">
               </div>
               <div>
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Timeout (ms)</div>
+                <label class="form-label" for="scan-timeout">Timeout (ms)</label>
                 <input class="form-control" id="scan-timeout" type="number" min="50" max="10000" value="800">
               </div>
               <div>
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Batch (ms)</div>
+                <label class="form-label" for="scan-batch">Batch (ms)</label>
                 <input class="form-control" id="scan-batch" type="number" min="200" max="10000" value="1500">
               </div>
             </div>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);margin-bottom:10px;cursor:pointer">
-              <input type="checkbox" id="scan-fingerprint" checked> Fingerprint open ports (banner grab + TLS cert)
+            <label class="form-check">
+              <input type="checkbox" id="scan-fingerprint" checked>
+              Fingerprint open ports (banner grab + TLS cert)
             </label>
-            <button class="btn btn-primary" id="scan-start-btn" onclick="scanStart()"><svg class="icon" viewBox="0 0 16 16"><path d="M3 2v12l11-6L3 2z"/></svg> Start Scan</button>
+            <button type="button" class="btn btn-primary" id="scan-start-btn" onclick="scanStart()"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2v12l11-6L3 2z"/></svg> Start Scan</button>
           </div>
-        </div>
-        <div class="card">
-          <div class="card-header">Scans</div>
-          <div class="card-body" id="scans-body" style="padding:8px">
-            <div style="color:var(--muted);font-size:13px;padding:12px">Loading...</div>
+        </article>
+        <article class="card">
+          <header class="card-header">Scans</header>
+          <div class="card-body card-body--compact" id="scans-body">
+            <p class="empty-state--pad-sm">Loading...</p>
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
 <!-- /MODULE:scanner -->
 
 <!-- MODULE:diagnostics -->
-      <!-- DIAGNOSTICS TAB -->
-      <div class="tab-content" id="tab-diag">
-        <div class="card">
-          <div class="card-header">
+      <section class="tab-content" id="tab-diag" aria-label="Diagnostics">
+        <article class="card">
+          <header class="card-header">
             System Diagnostics
             <div class="btn-group">
 <!-- MODULE:faraday -->
-              <button class="btn btn-sm btn-secondary" onclick="faradayExportDiag()" title="Export the loaded diagnostics blob as a faraday_json file">&#x2191; Faraday</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="faradayExportDiag()" title="Export the loaded diagnostics blob as a faraday_json file">&#x2191; Faraday</button>
 <!-- /MODULE:faraday -->
-              <button class="btn btn-sm btn-primary" onclick="loadDiag()"><svg class="icon" viewBox="0 0 16 16"><path d="M8 2a6 6 0 00-6 6h1.5A4.5 4.5 0 018 3.5c1 0 1.8.3 2.5.8L9 6h5V1l-1.5 1.5A6 6 0 008 2zm6 6h-1.5A4.5 4.5 0 018 12.5c-1 0-1.8-.3-2.5-.8L7 10H2v5l1.5-1.5A6 6 0 008 14a6 6 0 006-6z"/></svg> Refresh</button>
+              <button type="button" class="btn btn-sm btn-primary" onclick="loadDiag()"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 00-6 6h1.5A4.5 4.5 0 018 3.5c1 0 1.8.3 2.5.8L9 6h5V1l-1.5 1.5A6 6 0 008 2zm6 6h-1.5A4.5 4.5 0 018 12.5c-1 0-1.8-.3-2.5-.8L7 10H2v5l1.5-1.5A6 6 0 008 14a6 6 0 006-6z"/></svg> Refresh</button>
             </div>
-          </div>
+          </header>
           <div class="card-body" id="diag-body">
-            <div style="color:var(--muted);font-size:13px">Click Refresh to load diagnostics.</div>
+            <p class="empty-state">Click Refresh to load diagnostics.</p>
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
 <!-- /MODULE:diagnostics -->
 
-
 <!-- MODULE:history -->
-      <!-- HISTORY TAB -->
-      <div class="tab-content" id="tab-history">
-        <div class="card">
-          <div class="card-header">
+      <section class="tab-content" id="tab-history" aria-label="History">
+        <article class="card">
+          <header class="card-header">
             Command History
             <div class="btn-group">
-              <button class="btn btn-sm btn-secondary" onclick="exportHistory()"><svg class="icon" viewBox="0 0 16 16"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Export</button>
-              <button class="btn btn-sm btn-danger" onclick="clearHistory()">Clear</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="exportHistory()"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Export</button>
+              <button type="button" class="btn btn-sm btn-danger" onclick="clearHistory()">Clear</button>
             </div>
-          </div>
+          </header>
           <div class="card-body" id="history-body">
-            <div style="color:var(--muted);font-size:13px">No history yet.</div>
+            <p class="empty-state">No history yet.</p>
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
 <!-- /MODULE:history -->
 
-    </div><!-- /content -->
-  </div><!-- /main -->
-</div><!-- /layout -->
+    </div>
+  </main>
+</div>

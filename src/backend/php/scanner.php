@@ -1,6 +1,8 @@
 <?php
 if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
-    ob_end_clean();
+    if (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     header('Content-Type: application/json');
     @set_time_limit(0);
     ignore_user_abort(true);
@@ -569,6 +571,10 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
 // (multi-tab pollers, control actions, reattach race). Held through the full
 // batch; pause/resume/stop will queue until the current batch finishes.
         $lockFp = $__sc_acquire_lock($id);
+        if (!$lockFp) {
+            echo json_encode(['error' => 'Scan busy (lock unavailable)']);
+            exit;
+        }
         $state = $__sc_read_state($id);
         if (!$state) {
             $__sc_release_lock($lockFp);
@@ -725,6 +731,10 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
         // Block until any in-flight poll batch finishes so the status change isn't
 // overwritten by the poll's post-batch state write.
         $lockFp = $__sc_acquire_lock($id);
+        if (!$lockFp) {
+            echo json_encode(['error' => 'Scan busy (lock unavailable)']);
+            exit;
+        }
         $state = $__sc_read_state($id);
         if (!$state) {
             $__sc_release_lock($lockFp);
@@ -774,8 +784,14 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
             echo json_encode(['error' => 'Invalid id']);
             exit;
         }
+        $lockFp = $__sc_acquire_lock($id);
+        if (!$lockFp) {
+            echo json_encode(['error' => 'Scan busy (lock unavailable)']);
+            exit;
+        }
         @unlink($__sc_state_path($id));
         @unlink($__sc_events_path($id));
+        $__sc_release_lock($lockFp);
         @unlink($__sc_lock_path($id));
         echo json_encode(['ok' => true]);
         exit;

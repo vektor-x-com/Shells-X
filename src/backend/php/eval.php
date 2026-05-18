@@ -1,6 +1,8 @@
 <?php
 if (isset($_POST['action']) && $_POST['action'] === 'eval') {
-    ob_end_clean();
+    if (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     header('Content-Type: application/json');
     $timeout = (int) ($_POST['timeout'] ?? 30);
     set_time_limit($timeout > 0 ? $timeout : 30);

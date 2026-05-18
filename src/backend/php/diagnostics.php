@@ -1,12 +1,21 @@
 <?php
 if (isset($_POST['action']) && $_POST['action'] === 'diag') {
-    ob_end_clean();
+    // crypto.php stacks [encryption, sacrificial] when --password is on. Pop only
+    // the sacrificial layer — same contract as eval.php. Popping the encryption
+    // buffer leaks raw JSON; WAFs may wrap that as <!-- base64 --> and crypto.js
+    // cannot decrypt it.
+    if (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    $__diag_obl = ob_get_level();
     header('Content-Type: application/json');
 
     // Fatal error handler — catch 500s and return JSON instead of blank page
-    register_shutdown_function(function () {
+    register_shutdown_function(function () use ($__diag_obl) {
         $err = error_get_last();
         if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+            while (ob_get_level() > $__diag_obl)
+                ob_end_clean();
             if (!headers_sent())
                 header('Content-Type: application/json');
             echo json_encode(['error' => 'Fatal: ' . $err['message'] . ' in ' . $err['file'] . ':' . $err['line']]);

@@ -705,13 +705,17 @@ function _faradayApplyDiag(hosts, diag) {
 // because the operator hasn't opened the Diagnostics tab yet. Best-effort:
 // if the backend errors we proceed without enrichment instead of failing
 // the export.
-function _faradayEnsureDiag() {
-  if (window._lastDiagBlob) return Promise.resolve();
+function _faradayEnsureDiag(force) {
+  if (window._diagInFlight) return window._diagInFlight;
+  if (!force && window._lastDiagBlob) return Promise.resolve();
   const fd = new FormData();
   fd.append('action', 'diag');
-  return fetchJSON(fd).then(d => {
+  window._diagInFlight = fetchJSON(fd).then(d => {
     if (d && !d.error) window._lastDiagBlob = d;
-  }).catch(err => { console.warn('faraday: diag fetch failed, exporting without enrichment:', err); });
+  }).catch(err => {
+    console.warn('faraday: diag fetch failed, exporting without enrichment:', err);
+  }).finally(() => { window._diagInFlight = null; });
+  return window._diagInFlight;
 }
 
 function faradayBuildPayload(opts) {
@@ -719,12 +723,23 @@ function faradayBuildPayload(opts) {
   const cfg = _faradayCfg();
   const t0 = new Date();
 
-  return _faradayEnsureDiag().then(() => Promise.all([
-    opts.scanIds ? dbGetAll('scans').then(all => all.filter(s => opts.scanIds.indexOf(s.id) !== -1)) :
-    opts.includeAll ? dbGetAll('scans') : Promise.resolve([]),
-    opts.scanIds ? Promise.all(opts.scanIds.map(id => dbGetByIndex('scan_results', 'by_scan', id))).then(arrs => [].concat.apply([], arrs)) :
-    opts.includeAll ? dbGetAll('scan_results') : Promise.resolve([]),
-  ]).then(([scans, results]) => {
+  return _faradayEnsureDiag(opts.forceDiag).then(() => dbOpen().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(['scans', 'scan_results'], 'readonly');
+    const scansReq = tx.objectStore('scans').getAll();
+    const resultsReq = tx.objectStore('scan_results').getAll();
+    let scans = [];
+    let results = [];
+    scansReq.onsuccess = e => { scans = e.target.result || []; };
+    resultsReq.onsuccess = e => { results = e.target.result || []; };
+    tx.oncomplete = () => res({ scans, results });
+    tx.onerror = e => rej(e.target.error);
+  }))).then(({ scans: allScans, results: allResults }) => {
+    const scans = opts.scanIds
+      ? allScans.filter(s => opts.scanIds.indexOf(s.id) !== -1)
+      : (opts.includeAll ? allScans : []);
+    const results = opts.scanIds
+      ? allResults.filter(r => opts.scanIds.indexOf(r.scan_id) !== -1)
+      : (opts.includeAll ? allResults : []);
     const hosts = _faradayHostsFromScanResults(results);
     // Always merge MACs from the diagnostics ARP cache into any host the
     // payload already contains — this is cheap, useful, and works for
@@ -754,7 +769,7 @@ function faradayBuildPayload(opts) {
       },
       hosts: hostArr,
     };
-  }));
+  });
 }
 
 function _isoNoMs(d) { return d.toISOString().replace(/\.\d{3}Z$/, ''); }

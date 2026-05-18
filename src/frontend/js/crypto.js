@@ -32,13 +32,19 @@ try {
     return bytesToB64(new Uint8Array(buf));
   }
 
+  // IVs must come from a CSPRNG. getRandomValues is available in all browsers we
+  // target (incl. HTTP LAN IPs); it is not gated on secure context (unlike
+  // crypto.subtle). Missing only on obsolete engines (IE9-), locked-down
+  // WebViews, or rare hardening that disables Web Crypto entirely.
   function randomBytes(n) {
-    const out = new Uint8Array(n);
-    if (window.crypto && window.crypto.getRandomValues) {
-      window.crypto.getRandomValues(out);
-    } else {
-      for (let i = 0; i < n; i++) out[i] = (Math.random() * 256) | 0;
+    if (!window.crypto || typeof window.crypto.getRandomValues !== 'function') {
+      throw new Error(
+        'crypto.getRandomValues() is not available — use a current browser; ' +
+        'encryption cannot run safely without it.'
+      );
     }
+    const out = new Uint8Array(n);
+    window.crypto.getRandomValues(out);
     return out;
   }
 

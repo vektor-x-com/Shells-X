@@ -58,6 +58,17 @@
   gap: 12px;
 }
 
+.login-error {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(248, 81, 73, .45);
+  background: rgba(248, 81, 73, .12);
+  color: var(--red);
+  font-size: 13px;
+  text-align: center;
+}
+
 .login-field {
   width: 100%;
   background: var(--bg);

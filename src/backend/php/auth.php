@@ -1,6 +1,7 @@
 <?php
 // Password gate — injected via templates/php.tpl; filled at build (shellsx/auth.py).
 $__AUTH_HASH = '@@AUTH_HASH@@';
+$__login_failed = false;
 session_start();
 if (isset($_POST['__auth_pass'])) {
     if (hash_equals($__AUTH_HASH, hash('sha256', $_POST['__auth_pass']))) {
@@ -9,6 +10,7 @@ if (isset($_POST['__auth_pass'])) {
         header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
         exit;
     }
+    $__login_failed = true;
 }
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -22,6 +24,9 @@ if (isset($_GET['logout'])) {
 if (empty($_SESSION['__authed'])) {
     ob_end_clean();
     header('Content-Type: text/html; charset=UTF-8');
+    if ($__login_failed) {
+        echo '<p class="login-error" role="alert">Wrong password</p>';
+    }
     /*@@LOGIN_ECHO@@*/
     exit;
 }

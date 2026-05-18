@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import sys
 
 from .paths import BACKEND_DIR, CONFIG_PATH
 
@@ -52,18 +53,16 @@ def backend_auth_path(lang):
 
 
 def load_ordered_filepaths(directory, extension, order_file='_order.json'):
-    """Return file paths in the order specified by _order.json, or
-    alphabetical (excluding underscore-prefixed files) as fallback."""
+    """Return file paths in the order specified by _order.json.
+
+  Without ``_order.json`` the module order is undefined — abort the build."""
     order_path = os.path.join(directory, order_file)
-    if os.path.exists(order_path):
-        with open(order_path, 'r') as f:
-            order = json.load(f)
-        return [os.path.join(directory, name + extension) for name in order]
-    
-    else:
-        exit("order file is missing, or at wrong directory")
-    
-    return [os.path.join(directory, f) for f in files]
+    if not os.path.exists(order_path):
+        print(f'[!] Cannot build: missing order file: {order_path}')
+        sys.exit(1)
+    with open(order_path, 'r') as f:
+        order = json.load(f)
+    return [os.path.join(directory, name + extension) for name in order]
 
 
 def get_excluded_filepaths(exclude_modules):

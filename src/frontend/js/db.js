@@ -10,7 +10,13 @@ function dbOpen() {
     const req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = e => {
       const db = e.target.result;
-      // Clean slate — drop any prior stores and recreate the v2 schema
+      if (db.objectStoreNames.length > 0) {
+        console.warn(
+          'Shells-X: IndexedDB schema upgraded (v' + DB_VER + ') — ' +
+          'local command history and scan cache were cleared for this origin.'
+        );
+      }
+      // Clean slate — drop any prior stores and recreate the current schema
       Array.from(db.objectStoreNames).forEach(name => db.deleteObjectStore(name));
       db.createObjectStore('history', { keyPath: 'ts' });
       db.createObjectStore('scans', { keyPath: 'id' });

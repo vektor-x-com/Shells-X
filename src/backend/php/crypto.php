@@ -53,3 +53,12 @@ if (isset($_POST['__enc']) && isset($__AUTH_HASH) && function_exists('openssl_de
     // Sacrificial buffer — handlers' ob_end_clean() will destroy this one, not the encryption buffer
     ob_start();
 }
+
+// Encrypted POST but OpenSSL missing/disabled — fail closed instead of falling through to HTML UI.
+if (isset($_POST['__enc']) && isset($__AUTH_HASH) && !function_exists('openssl_decrypt')) {
+    while (ob_get_level())
+        ob_end_clean();
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'OpenSSL not available on server (openssl_decrypt missing)']);
+    exit;
+}

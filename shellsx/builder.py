@@ -305,7 +305,7 @@ def build(args):
     # Write
     os.makedirs(DIST_DIR, exist_ok=True)
     out_path = _determine_output_path(args, meta, lang)
-    with open(out_path, 'w') as f:
+    with open(out_path, 'w', encoding='utf-8') as f:
         f.write(output)
 
     _print_summary(args, meta, out_path, theme_name, exclude, lang)

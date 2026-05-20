@@ -364,8 +364,12 @@ python3 generate.py --output dev.php --theme ocean
 
 # http://localhost:8888/dev.php
 
-# Auto-rebuild on source changes
+# Auto-rebuild on source changes (Linux/macOS)
 cd dev && ./watch.sh --theme ocean
+
+# Windows (PowerShell or cmd)
+cd dev; .\watch.ps1 --theme ocean
+# or: watch.cmd --theme ocean
 ```
 
 Internal target services for testing the scanner and tunnel:

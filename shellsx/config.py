@@ -37,12 +37,12 @@ MODULE_JS = {
 def load_config():
     """Load src/config/defaults.json — the module registry (which modules
     are required vs optional)."""
-    with open(CONFIG_PATH, 'r') as f:
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
 def read_file(path):
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         return f.read()
 
 
@@ -60,7 +60,7 @@ def load_ordered_filepaths(directory, extension, order_file='_order.json'):
     if not os.path.exists(order_path):
         print(f'[!] Cannot build: missing order file: {order_path}')
         sys.exit(1)
-    with open(order_path, 'r') as f:
+    with open(order_path, 'r', encoding='utf-8') as f:
         order = json.load(f)
     return [os.path.join(directory, name + extension) for name in order]
 

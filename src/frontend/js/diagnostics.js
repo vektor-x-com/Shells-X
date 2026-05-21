@@ -74,9 +74,9 @@ function loadDiag() {
       });
       if (d.container && d.container.detected) {
         html += '<div style="margin-top:10px;padding:8px;background:rgba(210,153,34,.1);border-radius:4px">';
-        html += '<div style="font-size:12px;color:var(--yellow);font-weight:600">&#x26A0; Container detected: ' + escHtml(d.container.type || 'unknown') + '</div>';
-        html += '<div style="font-size:11px;color:var(--muted);margin-top:4px">' + (d.container.hints || []).map(escHtml).join(', ') + '</div>';
-        html += '<div style="font-size:11px;color:var(--muted);margin-top:2px">Network data reflects container namespace, not host.</div>';
+        html += '<div class="diag-alert diag-alert--warn">&#x26A0; Container detected: ' + escHtml(d.container.type || 'unknown') + '</div>';
+        html += '<div class="diag-note" style="margin-top:4px">' + (d.container.hints || []).map(escHtml).join(', ') + '</div>';
+        html += '<div class="diag-note" style="margin-top:2px">Network data reflects container namespace, not host.</div>';
         html += '</div>';
       }
       html += '</div></div>';
@@ -90,7 +90,7 @@ function loadDiag() {
         html += '<div class="diag-item"><span class="diag-label">' + kv[0] + '</span><span class="diag-value">' + kv[1] + '</span></div>';
       });
       if (d.group_memberships && Object.keys(d.group_memberships).length > 0) {
-        html += '<div style="margin-top:10px;font-size:12px;color:var(--red);font-weight:600">&#x26A0; Privileged group members:</div>';
+        html += '<div class="diag-alert diag-alert--danger" style="margin-top:10px">&#x26A0; Privileged group members:</div>';
         Object.entries(d.group_memberships).forEach(function(e) {
           html += '<div class="diag-item"><span class="diag-label" style="color:var(--yellow)">' + escHtml(e[0]) + '</span><span class="diag-value">' + e[1].map(escHtml).join(', ') + '</span></div>';
         });
@@ -137,13 +137,13 @@ function loadDiag() {
       });
       html += '</div>';
       if (d.interpreters && d.interpreters.length > 0) {
-        html += '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Interpreters:</div>';
+        html += '<div class="diag-subsection-title">Interpreters</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
         d.interpreters.forEach(function(t) { html += '<span class="badge badge-ok">' + escHtml(t) + '</span>'; });
         html += '</div>';
       }
       if (d.tools && d.tools.length > 0) {
-        html += '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Tools:</div>';
+        html += '<div class="diag-subsection-title">Tools</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
         d.tools.forEach(function(t) { html += '<span class="badge badge-ok">' + escHtml(t) + '</span>'; });
         html += '</div>';
@@ -166,6 +166,32 @@ function loadDiag() {
       }
 
       // ---- Network ----
+      html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F310; Network \u2014 This Host' + diagCopyBtn() + '</div><div class="card-body">';
+      [
+        ['Shell IP', d.target_ip || '\u2014'],
+        ['Hostname', d.target_host || '\u2014'],
+        ['Default gateway', d.default_gateway || '\u2014'],
+      ].forEach(function(kv) {
+        html += '<div class="diag-item"><span class="diag-label">' + kv[0] + '</span><span class="diag-value">' + escHtml(kv[1]) + '</span></div>';
+      });
+      if (d.network_ifaces && d.network_ifaces.length > 0) {
+        html += '<div class="diag-subsection-title">Interfaces</div>';
+        html += '<table class="file-table"><thead><tr><th>Iface</th><th>IP</th><th>Netmask</th><th>MAC</th></tr></thead><tbody>';
+        d.network_ifaces.forEach(function(i) {
+          html += '<tr><td>' + escHtml(i.iface) + '</td><td>' + escHtml(i.ip) + '</td><td>' + escHtml(i.netmask || '') + '</td><td style="font-size:11px;color:var(--muted)">' + escHtml(i.mac || '') + '</td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+      if (d.upstream_hosts && d.upstream_hosts.length > 0) {
+        html += '<div class="diag-subsection-title">Upstream / client (not ARP)</div>';
+        html += '<table class="file-table"><thead><tr><th>IP</th><th>Source</th><th>Note</th></tr></thead><tbody>';
+        d.upstream_hosts.forEach(function(h) {
+          html += '<tr><td>' + escHtml(h.ip) + '</td><td>' + escHtml(h.source) + '</td><td style="font-size:11px;color:var(--muted)">' + escHtml(h.note || '') + '</td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+      html += '</div></div>';
+
       html += '<div class="diag-grid" style="margin-bottom:16px">';
 
       html += '<div class="card" style="margin:0"><div class="card-header">&#x1F310; Network \u2014 ARP Hosts' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
@@ -175,7 +201,7 @@ function loadDiag() {
           html += '<tr><td>' + escHtml(h.ip) + '</td><td style="font-size:11px;color:var(--muted)">' + escHtml(h.mac) + '</td><td>' + escHtml(h.dev) + '</td></tr>';
         });
         html += '</tbody></table>';
-      } else { html += '<div style="padding:12px;color:var(--muted)">No ARP entries.</div>'; }
+      } else { html += '<div class="diag-empty">No ARP entries.</div>'; }
       html += '</div></div>';
 
       html += '<div class="card" style="margin:0"><div class="card-header">&#x1F6AA; Open Ports (listening)' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
@@ -189,7 +215,7 @@ function loadDiag() {
           html += '<tr><td><span class="badge badge-ok">' + escHtml(String(port)) + '</span></td><td style="' + (puid === 0 ? 'color:var(--red)' : '') + '">' + escHtml(String(puid)) + '</td><td>' + escHtml(String(pid)) + '</td><td style="font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(String(cmd)) + '</td></tr>';
         });
         html += '</tbody></table>';
-      } else { html += '<div style="padding:12px;color:var(--muted)">None detected.</div>'; }
+      } else { html += '<div class="diag-empty">None detected.</div>'; }
       html += '</div></div>';
       html += '</div>';
 
@@ -206,7 +232,7 @@ function loadDiag() {
       // =====================================================
       // PRIVILEGE ESCALATION VECTORS
       // =====================================================
-      html += '<div style="margin:16px 0 12px;padding:10px 16px;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);border-radius:8px;font-size:14px;font-weight:700;color:var(--red)">&#x1F525; Privilege Escalation Vectors</div>';
+      html += '<div class="diag-section-title">&#x1F525; Privilege Escalation Vectors</div>';
 
       // --- SUID/SGID Binaries ---
       html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F511; SUID/SGID Binaries' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
@@ -216,13 +242,13 @@ function loadDiag() {
         d.suid_binaries.forEach(function(b) {
           const rowStyle = b.gtfobins ? 'background:rgba(248,81,73,.06)' : '';
           const typeStr = (b.suid ? 'SUID' : '') + (b.suid && b.sgid ? '+' : '') + (b.sgid ? 'SGID' : '');
-          html += '<tr style="' + rowStyle + '"><td style="font-family:monospace;font-size:12px">' + escHtml(b.path) + '</td>';
+          html += '<tr style="' + rowStyle + '"><td class="mono-sm">' + escHtml(b.path) + '</td>';
           html += '<td>' + (b.owner_uid === 0 ? '<span style="color:var(--red)">root</span>' : escHtml(String(b.owner_uid))) + '</td>';
           html += '<td><span class="badge badge-warn">' + typeStr + '</span></td>';
           html += '<td>' + (b.gtfobins ? '<span class="badge badge-no">&#x26A0; GTFOBins</span>' : '<span style="color:var(--muted)">-</span>') + '</td></tr>';
         });
         html += '</tbody></table></div>';
-      } else { html += '<div style="padding:12px;color:var(--muted)">None found (or scan restricted by open_basedir).</div>'; }
+      } else { html += '<div class="diag-empty">None found (or scan restricted by open_basedir).</div>'; }
       html += '</div></div>';
 
       // --- Capabilities ---
@@ -237,7 +263,7 @@ function loadDiag() {
         if (capEff) {
           const effCaps = capEff.caps || [];
           if (effCaps.length > 0) {
-            html += '<div style="font-size:12px;color:var(--red);font-weight:600;margin-bottom:6px">&#x26A0; Effective capabilities (active privileges):</div>';
+            html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:6px">&#x26A0; Effective capabilities (active privileges):</div>';
             html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">';
             effCaps.forEach(function(c) {
               html += '<span class="badge ' + (dangerCaps[c] ? 'badge-no' : 'badge-warn') + '" style="font-size:11px">' + escHtml(c) + '</span>';
@@ -249,7 +275,7 @@ function loadDiag() {
         }
         // CapBnd — only show if restricted (indicates container/hardening)
         if (capBnd && !bndFull) {
-          html += '<div style="margin-top:8px;font-size:12px;color:var(--yellow);margin-bottom:4px">&#x1F512; Bounding set is restricted (container/hardened):</div>';
+          html += '<div class="diag-alert diag-alert--warn" style="margin-top:8px;margin-bottom:4px">&#x1F512; Bounding set is restricted (container/hardened):</div>';
           html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
           (capBnd.caps || []).forEach(function(c) {
             html += '<span class="badge badge-ok" style="font-size:10px">' + escHtml(c) + '</span>';
@@ -291,7 +317,7 @@ function loadDiag() {
       if (d.docker_socket && (d.docker_socket.sockets.length > 0 || d.docker_socket.user_in_docker_group)) {
         html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F433; Docker / Podman Socket' + diagCopyBtn() + '</div><div class="card-body">';
         if (d.docker_socket.user_in_docker_group) {
-          html += '<div style="color:var(--red);font-size:12px;font-weight:600;margin-bottom:8px">&#x26A0; Current user is in docker group!</div>';
+          html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:8px">&#x26A0; Current user is in docker group!</div>';
         }
         d.docker_socket.sockets.forEach(function(s) {
           const status = s.writable ? '<span class="badge badge-no">&#x26A0; WRITABLE (root equiv!)</span>' : (s.readable ? '<span class="badge badge-warn">readable</span>' : '<span class="badge badge-ok">exists</span>');
@@ -372,7 +398,7 @@ function loadDiag() {
       if (d.nfs_exports && d.nfs_exports.readable) {
         html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F4C1; NFS Exports' + diagCopyBtn() + '</div><div class="card-body">';
         if (d.nfs_exports.no_root_squash && d.nfs_exports.no_root_squash.length > 0) {
-          html += '<div style="color:var(--red);font-size:12px;font-weight:600;margin-bottom:8px">&#x26A0; no_root_squash found!</div>';
+          html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:8px">&#x26A0; no_root_squash found!</div>';
           d.nfs_exports.no_root_squash.forEach(function(l) {
             html += '<div style="font-family:monospace;font-size:11px;color:var(--yellow)">' + escHtml(l) + '</div>';
           });
@@ -410,20 +436,20 @@ function loadDiag() {
             + '<td style="' + wStyle + '">' + (b.writable ? '<span class="badge badge-ok" style="background:rgba(210,153,34,.15);color:var(--red)">WRITABLE</span>' : '<span class="badge badge-no">no</span>') + '</td></tr>';
         });
         html += '</tbody></table>';
-      } else { html += '<div style="padding:12px;color:var(--muted)">None found.</div>'; }
+      } else { html += '<div class="diag-empty">None found.</div>'; }
       html += '</div></div>';
 
       html += '<div class="card" style="margin:0"><div class="card-header">&#x270F; Writable Dirs & Readable Sensitive Files' + diagCopyBtn() + '</div><div class="card-body">';
       if (d.writable_dirs && d.writable_dirs.length > 0) {
-        html += '<div style="margin-bottom:8px;font-size:12px;color:var(--muted)">Writable:</div>';
+        html += '<div class="diag-subsection-title" style="margin-bottom:8px">Writable</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
         d.writable_dirs.forEach(function(p) { html += '<span class="badge badge-ok">' + escHtml(p) + '</span>'; });
         html += '</div>';
       }
       if (d.readable_files && d.readable_files.length > 0) {
-        html += '<div style="font-size:12px;color:var(--red);margin-bottom:4px">&#x26A0; Readable sensitive files:</div>';
+        html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:4px">&#x26A0; Readable sensitive files:</div>';
         d.readable_files.forEach(function(f) {
-          html += '<div style="font-family:monospace;font-size:12px;color:var(--yellow);cursor:pointer" onclick="insertCode(\'echo file_get_contents(\\\'' + escHtml(f) + '\\\');\')">&#x1F4C4; ' + escHtml(f) + '</div>';
+          html += '<div class="mono-sm" style="color:var(--yellow);cursor:pointer" onclick="insertCode(\'echo file_get_contents(\\\'' + escHtml(f) + '\\\');\')">&#x1F4C4; ' + escHtml(f) + '</div>';
         });
       }
       html += '</div></div>';
@@ -462,7 +488,7 @@ function loadDiag() {
       if (d.backup_files && d.backup_files.length > 0) {
         html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F4E6; Backup / Config Files' + diagCopyBtn() + '</div><div class="card-body">';
         d.backup_files.forEach(function(bf) {
-          html += '<div class="diag-item"><span class="diag-label" style="font-family:monospace;font-size:12px">' + escHtml(bf.path) + '</span><span class="diag-value">' + formatBytes(bf.size) + (bf.readable ? ' <span class="badge badge-ok">readable</span>' : '') + '</span></div>';
+          html += '<div class="diag-item"><span class="diag-label mono-sm">' + escHtml(bf.path) + '</span><span class="diag-value">' + formatBytes(bf.size) + (bf.readable ? ' <span class="badge badge-ok">readable</span>' : '') + '</span></div>';
         });
         html += '</div></div>';
       }
@@ -488,7 +514,7 @@ function loadDiag() {
       html += '<table class="file-table"><thead><tr><th>PID</th><th>UID</th><th>Command</th></tr></thead><tbody>';
       (d.processes || []).forEach(function(p) {
         const isRoot = p.uid === 0;
-        html += '<tr><td style="color:var(--muted)">' + escHtml(p.pid) + '</td><td style="' + (isRoot?'color:var(--red)':'') + '">' + escHtml(p.uid) + '</td><td style="font-family:monospace;font-size:12px">' + escHtml(p.cmd) + '</td></tr>';
+        html += '<tr><td style="color:var(--muted)">' + escHtml(p.pid) + '</td><td style="' + (isRoot?'color:var(--red)':'') + '">' + escHtml(p.uid) + '</td><td class="mono-sm">' + escHtml(p.cmd) + '</td></tr>';
       });
       html += '</tbody></table></div></div></div>';
 
@@ -498,11 +524,11 @@ function loadDiag() {
         d.frameworks.forEach(function(fw) {
           var verBadge = fw.version ? '<span class="badge badge-ok">' + escHtml(fw.version) + '</span>' : '<span class="badge badge-warn">unknown</span>';
           html += '<div style="margin-bottom:16px;padding:12px;background:rgba(0,0,0,.2);border-radius:6px;border:1px solid var(--border)">';
-          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><strong style="color:var(--accent);font-size:14px">' + escHtml(fw.name) + '</strong> ' + verBadge + '</div>';
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><strong class="diag-fw-title">' + escHtml(fw.name) + '</strong> ' + verBadge + '</div>';
           if (fw.config_path) html += '<div class="diag-item"><span class="diag-label">Config</span><span class="diag-value">' + escHtml(fw.config_path) + '</span></div>';
           var det = fw.details || {};
           if (det.db_host || det.db_name || det.db_user) {
-            html += '<div style="margin-top:8px;padding:8px;background:rgba(0,0,0,.2);border-radius:4px;font-size:12px">';
+            html += '<div style="margin-top:8px;padding:8px;background:rgba(0,0,0,.2);border-radius:4px">';
             html += '<div style="color:var(--red);font-weight:600;margin-bottom:4px">Database Credentials</div>';
             if (det.db_host) html += '<div class="diag-item"><span class="diag-label">Host</span><span class="diag-value">' + escHtml(det.db_host) + '</span></div>';
             if (det.db_name) html += '<div class="diag-item"><span class="diag-label">Database</span><span class="diag-value">' + escHtml(det.db_name) + '</span></div>';
@@ -529,7 +555,7 @@ function loadDiag() {
       }
 
       // ---- Disabled functions ----
-      html += '<div class="card"><div class="card-header">&#x1F6AB; Disabled Functions' + diagCopyBtn() + '</div><div class="card-body"><div style="font-family:monospace;font-size:12px;color:var(--muted);word-break:break-all">' + escHtml(d.disable_functions) + '</div></div></div>';
+      html += '<div class="card"><div class="card-header">&#x1F6AB; Disabled Functions' + diagCopyBtn() + '</div><div class="card-body"><div class="mono-sm" style="color:var(--muted);word-break:break-all">' + escHtml(d.disable_functions) + '</div></div></div>';
 
       body.innerHTML = html;
     })

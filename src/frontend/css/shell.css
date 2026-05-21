@@ -226,12 +226,31 @@
   .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-10); }
   .form-control::placeholder { color: #525c66; }
 
-  /* Diagnostics */
+  /* Diagnostics — match file-table / form density (12.5px), not body default (13px). */
+  #diag-body { font-size: 12.5px; line-height: 1.45; }
+  #diag-body .empty-state { font-size: 12.5px; }
   .diag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .diag-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed rgba(255,255,255,.05); font-size: 12.5px; gap: 12px; }
+  .diag-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed rgba(255,255,255,.05); font-size: inherit; gap: 12px; }
   .diag-item:last-child { border-bottom: none; }
   .diag-label { color: var(--muted); white-space: nowrap; }
   .diag-value { color: var(--text); text-align: right; word-break: break-all; }
+  .diag-section-title {
+    margin: 16px 0 12px; padding: 10px 14px;
+    background: rgba(248,81,73,.08); border: 1px solid rgba(248,81,73,.2); border-radius: 8px;
+    font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--red);
+  }
+  .diag-subsection-title {
+    margin-top: 10px; margin-bottom: 4px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .diag-empty { padding: 12px; color: var(--muted); font-size: inherit; }
+  .diag-note { font-size: 11px; color: var(--muted); }
+  .diag-alert { font-size: 11px; font-weight: 600; }
+  .diag-alert--warn { color: var(--yellow); }
+  .diag-alert--danger { color: var(--red); }
+  .diag-fw-title { color: var(--accent); font-size: 12px; font-weight: 600; }
 
   /* Badges — bracket-style boxes, never pills. */
   .badge {

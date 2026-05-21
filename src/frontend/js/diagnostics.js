@@ -1,4 +1,55 @@
 // ==================== DIAGNOSTICS ====================
+// Solid 16×16 icons — same .icon treatment as sidebar (currentColor, no emoji font).
+var DIAG_ICONS = {
+  monitor: 'M1 2v12h14V2zm12 2v8H3V4zM5 6l1-1 3 3-3 3-1-1 2-2zm3 4h4v1H8z',
+  user: 'M8 8a3 3 0 100-6 3 3 0 000 6zm-5 6c0-2.8 2.2-5 5-5s5 2.2 5 5v1H3v-1z',
+  gear: 'M8 1.3l1 2.1 2.4.4-1.8 1.7.4 2.5L8 7.3 5 9.2l.4-2.5-1.8-1.7 2.4-.4L8 1.3z',
+  layers: 'M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 0h5v5H9V9z',
+  users: 'M2 13v-1c0-2 1.8-3.5 4-3.5h4c2.2 0 4 1.5 4 3.5v1H2zm2-8.5a2 2 0 114 0 2 2 0 01-4 0zm6 0a2 2 0 114 0 2 2 0 01-4 0z',
+  globe: 'M8 0a8 8 0 100 16A8 8 0 008 0zm0 2c.7 0 1.5.5 2.2 1.3L8 5 5.8 3.3C6.5 2.5 7.3 2 8 2zM4.4 4.5L7 6.5v2L4 11l-.5.5C2.6 10.5 2 9.3 2 8c0-1.3.5-2.5 1.4-3.5zM12.6 4.5C13.5 5.5 14 6.7 14 8c0 1.3-.5 2.5-1.4 3.5L12 11 9 8.5v-2zM7 10.5l1 1 1-1 2 2c-.7.5-1.8 1-3 1s-2.3-.5-3-1z',
+  port: 'M2 3h12v10H2V3zm2 2v6h8V5H4zm2 1h1v1H6V6zm3 0h1v1H9V6zm-3 2h1v1H6V8zm3 0h1v1H9V8z',
+  route: 'M2 2h4v4H2V2zm8 0h4v4h-4V2zM2 10h4v4H2v-4zm8 0h4v4h-4v-4zM7 7h2v2H7V7z',
+  alert: 'M8 1L1 15h14L8 1zm0 4v4H7V8h2V5zm0 5v2H7v-2h2z',
+  key: 'M6 1h4v2H9v1h2l-1 2v5H5V6L4 4h2V3H6V1z',
+  shield: 'M8 1L2 4v4c0 3.3 2.4 5.8 6 6.9 3.6-1.1 6-3.6 6-6.9V4L8 1z',
+  clock: 'M8 0a8 8 0 100 16A8 8 0 008 0zm0 2a6 6 0 110 12A6 6 0 018 2zm-1 2v5l4 2.5.8-1.4L8.5 8.2V4z',
+  lock: 'M5 7V5a3 3 0 116 0v2h1v7H4V7h1zm1-4a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2z',
+  box: 'M2 4h12v8H2V4zm2 2v4h8V6H4z',
+  disk: 'M2 3h12v10H2V3zm2 2v2h8V5H4zm0 4v2h8V9H4z',
+  chip: 'M4 4h8v8H4V4zm2 2v4h4V6H6zM3 6h1v1H3V6zm10 0h1v1h-1V6zm0 4h1v1h-1v-1zM3 10h1v1H3v-1z',
+  package: 'M2 3h12v2H4v8h8V5h2v8H2V3z',
+  folder: 'M1 3v10h14V5H7L5 3z',
+  edit: 'M11 2l3 3-7 7-3 1 1-3 7-7 3-3zM10 3l3 3',
+  home: 'M2 7l6-5 6 5v8H9v-5H7v5H2V7z',
+  tag: 'M3 3h7l4 4v6H3V3zm2 2v2h3V5H5z',
+  play: 'M3 2v12l11-6L3 2z',
+  search: 'M6.5 1a5.5 5.5 0 014.4 8.8l3.8 3.8-1.4 1.4-3.8-3.8A5.5 5.5 0 116.5 1zm0 2a3.5 3.5 0 100 7 3.5 3.5 0 000-7z',
+  ban: 'M8 1a7 7 0 100 14A7 7 0 008 1zm3.5 10.5L4.5 5 5.9 3.5 11 8.9l1.6-1.4z',
+  warn: 'M8 1L1 15h14L8 1zm-.5 4v4h1V5h-1zm0 5v2h1v-2h-1z',
+  chevron: 'M6 3l4 5-4 5V3z',
+  check: 'M3 8l3 3 7-7-1.4-1.4L6 8.2 4.4 6.6 3 8z',
+  file: 'M3 1v14h10V5L9 1zm6 1l4 4H9z',
+};
+
+function diagIcon(id, extraClass) {
+  var path = DIAG_ICONS[id];
+  if (!path) return '';
+  var cls = 'icon' + (extraClass ? ' ' + extraClass : '');
+  return '<svg class="' + cls + '" viewBox="0 0 16 16" aria-hidden="true"><path d="' + path + '"/></svg>';
+}
+
+function diagIconInline(id) {
+  return diagIcon(id, 'icon-inline');
+}
+
+function diagCardHeader(title, iconId) {
+  return '<div class="card-header"><span class="card-header-title">' + diagIcon(iconId) + escHtml(title) + '</span>' + diagCopyBtn() + '</div>';
+}
+
+function diagSectionTitle(title, iconId) {
+  return '<div class="diag-section-title"><span class="card-header-title">' + diagIcon(iconId) + escHtml(title) + '</span></div>';
+}
+
 function diagCopyBtn() {
   return '<button class="btn btn-secondary btn-sm" onclick="diagCopy(this)" style="margin-left:auto;flex-shrink:0">Copy</button>';
 }
@@ -59,7 +110,7 @@ function loadDiag() {
       // ---- ROW 1: System + Identity ----
       html += '<div class="diag-grid" style="margin-bottom:16px">';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F4BB; System' + diagCopyBtn() + '</div><div class="card-body">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('System', 'monitor') + '<div class="card-body">';
       [
         ['PHP', d.php_version],
         ['OS', d.os],
@@ -74,14 +125,14 @@ function loadDiag() {
       });
       if (d.container && d.container.detected) {
         html += '<div style="margin-top:10px;padding:8px;background:rgba(210,153,34,.1);border-radius:4px">';
-        html += '<div class="diag-alert diag-alert--warn">&#x26A0; Container detected: ' + escHtml(d.container.type || 'unknown') + '</div>';
+        html += '<div class="diag-alert diag-alert--warn">' + diagIconInline('warn') + 'Container detected: ' + escHtml(d.container.type || 'unknown') + '</div>';
         html += '<div class="diag-note" style="margin-top:4px">' + (d.container.hints || []).map(escHtml).join(', ') + '</div>';
         html += '<div class="diag-note" style="margin-top:2px">Network data reflects container namespace, not host.</div>';
         html += '</div>';
       }
       html += '</div></div>';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F464; Identity' + diagCopyBtn() + '</div><div class="card-body">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('Identity', 'user') + '<div class="card-body">';
       [
         ['User', d.user_name + ' (uid=' + d.uid + ')'],
         ['Group', d.group_name + ' (gid=' + d.gid + ')'],
@@ -90,7 +141,7 @@ function loadDiag() {
         html += '<div class="diag-item"><span class="diag-label">' + kv[0] + '</span><span class="diag-value">' + kv[1] + '</span></div>';
       });
       if (d.group_memberships && Object.keys(d.group_memberships).length > 0) {
-        html += '<div class="diag-alert diag-alert--danger" style="margin-top:10px">&#x26A0; Privileged group members:</div>';
+        html += '<div class="diag-alert diag-alert--danger" style="margin-top:10px">' + diagIconInline('warn') + 'Privileged group members:</div>';
         Object.entries(d.group_memberships).forEach(function(e) {
           html += '<div class="diag-item"><span class="diag-label" style="color:var(--yellow)">' + escHtml(e[0]) + '</span><span class="diag-value">' + e[1].map(escHtml).join(', ') + '</span></div>';
         });
@@ -100,7 +151,7 @@ function loadDiag() {
 
       // ---- ROW 2: Functions + Extensions ----
       html += '<div class="diag-grid" style="margin-bottom:16px">';
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x2699; Functions' + diagCopyBtn() + '</div><div class="card-body">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('Functions', 'gear') + '<div class="card-body">';
       const fn = d.functions || {};
       const directExec = ['exec','shell_exec','system','passthru','popen','proc_open','pcntl_exec'];
       const hasDirectExec = directExec.some(function(f) { return fn[f]; });
@@ -130,7 +181,7 @@ function loadDiag() {
       }
       html += '</div></div>';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F9E9; Extensions & Tools' + diagCopyBtn() + '</div><div class="card-body">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('Extensions & Tools', 'layers') + '<div class="card-body">';
       html += '<div style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:6px">';
       Object.entries(d.extensions || {}).forEach(function(e) {
         html += '<span class="badge ' + (e[1] ? 'badge-ok' : 'badge-no') + '">' + e[0] + '</span>';
@@ -156,7 +207,7 @@ function loadDiag() {
 
       // ---- Users with login shells ----
       if (d.passwd_users && d.passwd_users.length > 0) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F465; Login Users (/etc/passwd)' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Login Users (/etc/passwd)', 'users') + '<div class="card-body" style="padding:0">';
         html += '<table class="file-table"><thead><tr><th>User</th><th>UID</th><th>Home</th><th>Shell</th></tr></thead><tbody>';
         d.passwd_users.forEach(function(u) {
           const highlight = (parseInt(u.uid) === 0 || parseInt(u.uid) >= 1000) ? 'color:var(--yellow)' : '';
@@ -166,7 +217,7 @@ function loadDiag() {
       }
 
       // ---- Network ----
-      html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F310; Network \u2014 This Host' + diagCopyBtn() + '</div><div class="card-body">';
+      html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Network \u2014 This Host', 'globe') + '<div class="card-body">';
       [
         ['Shell IP', d.target_ip || '\u2014'],
         ['Hostname', d.target_host || '\u2014'],
@@ -194,7 +245,7 @@ function loadDiag() {
 
       html += '<div class="diag-grid" style="margin-bottom:16px">';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F310; Network \u2014 ARP Hosts' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('Network \u2014 ARP Hosts', 'globe') + '<div class="card-body" style="padding:0">';
       if (d.arp_hosts && d.arp_hosts.length > 0) {
         html += '<table class="file-table"><thead><tr><th>IP</th><th>MAC</th><th>Iface</th></tr></thead><tbody>';
         d.arp_hosts.forEach(function(h) {
@@ -204,7 +255,7 @@ function loadDiag() {
       } else { html += '<div class="diag-empty">No ARP entries.</div>'; }
       html += '</div></div>';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F6AA; Open Ports (listening)' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('Open Ports (listening)', 'port') + '<div class="card-body" style="padding:0">';
       if (d.open_ports && d.open_ports.length > 0) {
         html += '<table class="file-table"><thead><tr><th>Port</th><th>UID</th><th>PID</th><th>Process</th></tr></thead><tbody>';
         d.open_ports.forEach(function(p) {
@@ -221,7 +272,7 @@ function loadDiag() {
 
       // Routing table
       if (d.routes && d.routes.length > 0) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F5FA; Routes' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Routes', 'route') + '<div class="card-body" style="padding:0">';
         html += '<table class="file-table"><thead><tr><th>Iface</th><th>Destination</th><th>Gateway</th><th>Mask</th><th>Metric</th></tr></thead><tbody>';
         d.routes.forEach(function(r) {
           html += '<tr><td>' + escHtml(r.iface) + '</td><td>' + escHtml(r.dest) + '</td><td>' + escHtml(r.gw) + '</td><td>' + escHtml(r.mask) + '</td><td>' + escHtml(String(r.metric != null ? r.metric : '')) + '</td></tr>';
@@ -232,10 +283,10 @@ function loadDiag() {
       // =====================================================
       // PRIVILEGE ESCALATION VECTORS
       // =====================================================
-      html += '<div class="diag-section-title">&#x1F525; Privilege Escalation Vectors</div>';
+      html += diagSectionTitle('Privilege Escalation Vectors', 'alert');
 
       // --- SUID/SGID Binaries ---
-      html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F511; SUID/SGID Binaries' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
+      html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('SUID/SGID Binaries', 'key') + '<div class="card-body" style="padding:0">';
       if (d.suid_binaries && d.suid_binaries.length > 0) {
         html += '<div style="max-height:300px;overflow-y:auto">';
         html += '<table class="file-table"><thead><tr><th>Path</th><th>Owner</th><th>Type</th><th>GTFOBins</th></tr></thead><tbody>';
@@ -245,7 +296,7 @@ function loadDiag() {
           html += '<tr style="' + rowStyle + '"><td class="mono-sm">' + escHtml(b.path) + '</td>';
           html += '<td>' + (b.owner_uid === 0 ? '<span style="color:var(--red)">root</span>' : escHtml(String(b.owner_uid))) + '</td>';
           html += '<td><span class="badge badge-warn">' + typeStr + '</span></td>';
-          html += '<td>' + (b.gtfobins ? '<span class="badge badge-no">&#x26A0; GTFOBins</span>' : '<span style="color:var(--muted)">-</span>') + '</td></tr>';
+          html += '<td>' + (b.gtfobins ? '<span class="badge badge-no">' + diagIconInline('warn') + 'GTFOBins</span>' : '<span style="color:var(--muted)">-</span>') + '</td></tr>';
         });
         html += '</tbody></table></div>';
       } else { html += '<div class="diag-empty">None found (or scan restricted by open_basedir).</div>'; }
@@ -258,12 +309,12 @@ function loadDiag() {
         const capBnd = d.capabilities['CapBnd'];
         // CapBnd is "full" if all 41 standard bits set = 000001ffffffffff or higher
         const bndFull = capBnd && /^0*1?f{10}$/.test(capBnd.hex);
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F9E2; Process Capabilities' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Process Capabilities', 'shield') + '<div class="card-body">';
         // CapEff — what this process can actually do
         if (capEff) {
           const effCaps = capEff.caps || [];
           if (effCaps.length > 0) {
-            html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:6px">&#x26A0; Effective capabilities (active privileges):</div>';
+            html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:6px">' + diagIconInline('warn') + 'Effective capabilities (active privileges):</div>';
             html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">';
             effCaps.forEach(function(c) {
               html += '<span class="badge ' + (dangerCaps[c] ? 'badge-no' : 'badge-warn') + '" style="font-size:11px">' + escHtml(c) + '</span>';
@@ -275,7 +326,7 @@ function loadDiag() {
         }
         // CapBnd — only show if restricted (indicates container/hardening)
         if (capBnd && !bndFull) {
-          html += '<div class="diag-alert diag-alert--warn" style="margin-top:8px;margin-bottom:4px">&#x1F512; Bounding set is restricted (container/hardened):</div>';
+          html += '<div class="diag-alert diag-alert--warn" style="margin-top:8px;margin-bottom:4px">' + diagIconInline('lock') + 'Bounding set is restricted (container/hardened):</div>';
           html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
           (capBnd.caps || []).forEach(function(c) {
             html += '<span class="badge badge-ok" style="font-size:10px">' + escHtml(c) + '</span>';
@@ -289,14 +340,14 @@ function loadDiag() {
 
       // --- Cron Jobs ---
       if (d.cron_jobs && d.cron_jobs.length > 0) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x23F0; Cron Jobs' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Cron Jobs', 'clock') + '<div class="card-body">';
         d.cron_jobs.forEach(function(cj) {
           const wrFlag = cj.source_writable ? ' <span class="badge badge-no">WRITABLE</span>' : '';
-          html += '<div style="font-size:11px;color:var(--yellow);margin-bottom:4px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">&#x25B6; ' + escHtml(cj.source) + wrFlag + '</div>';
+          html += '<div style="font-size:11px;color:var(--yellow);margin-bottom:4px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">' + diagIconInline('chevron') + escHtml(cj.source) + wrFlag + '</div>';
           html += '<pre style="display:none;font-size:11px;background:rgba(0,0,0,.3);padding:8px;border-radius:4px;margin:0 0 8px 0;white-space:pre-wrap;word-break:break-all;color:var(--fg)">' + escHtml(cj.content) + '</pre>';
           if (cj.writable_scripts && cj.writable_scripts.length > 0) {
             cj.writable_scripts.forEach(function(ws) {
-              html += '<div style="font-size:11px;color:var(--red);margin-bottom:2px">&#x26A0; Writable script: <span style="font-family:monospace">' + escHtml(ws) + '</span></div>';
+              html += '<div style="font-size:11px;color:var(--red);margin-bottom:2px">' + diagIconInline('warn') + 'Writable script: <span style="font-family:monospace">' + escHtml(ws) + '</span></div>';
             });
           }
         });
@@ -305,9 +356,9 @@ function loadDiag() {
 
       // --- Sudo Config ---
       if (d.sudo_config && d.sudo_config.readable) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F6E1; Sudo Configuration' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Sudo Configuration', 'lock') + '<div class="card-body">';
         Object.entries(d.sudo_config.files || {}).forEach(function(e) {
-          html += '<div style="font-size:11px;color:var(--yellow);margin-bottom:4px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">&#x25B6; ' + escHtml(e[0]) + '</div>';
+          html += '<div style="font-size:11px;color:var(--yellow);margin-bottom:4px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">' + diagIconInline('chevron') + escHtml(e[0]) + '</div>';
           html += '<pre style="display:none;font-size:11px;background:rgba(0,0,0,.3);padding:8px;border-radius:4px;margin:0 0 8px 0;white-space:pre-wrap;word-break:break-all;color:var(--fg)">' + escHtml(e[1]) + '</pre>';
         });
         html += '</div></div>';
@@ -315,12 +366,12 @@ function loadDiag() {
 
       // --- Docker Socket ---
       if (d.docker_socket && (d.docker_socket.sockets.length > 0 || d.docker_socket.user_in_docker_group)) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F433; Docker / Podman Socket' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Docker / Podman Socket', 'box') + '<div class="card-body">';
         if (d.docker_socket.user_in_docker_group) {
-          html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:8px">&#x26A0; Current user is in docker group!</div>';
+          html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:8px">' + diagIconInline('warn') + 'Current user is in docker group!</div>';
         }
         d.docker_socket.sockets.forEach(function(s) {
-          const status = s.writable ? '<span class="badge badge-no">&#x26A0; WRITABLE (root equiv!)</span>' : (s.readable ? '<span class="badge badge-warn">readable</span>' : '<span class="badge badge-ok">exists</span>');
+          const status = s.writable ? '<span class="badge badge-no">' + diagIconInline('warn') + 'WRITABLE (root equiv!)</span>' : (s.readable ? '<span class="badge badge-warn">readable</span>' : '<span class="badge badge-ok">exists</span>');
           html += '<div class="diag-item"><span class="diag-label" style="font-family:monospace">' + escHtml(s.path) + '</span><span class="diag-value">' + status + '</span></div>';
         });
         html += '</div></div>';
@@ -328,7 +379,7 @@ function loadDiag() {
 
       // --- Mounts ---
       if (d.mounts && d.mounts.length > 0) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F4BE; Mount Points' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Mount Points', 'disk') + '<div class="card-body" style="padding:0">';
         html += '<div style="max-height:250px;overflow-y:auto">';
         html += '<table class="file-table"><thead><tr><th>Mountpoint</th><th>FS</th><th>RW</th><th>nosuid</th><th>noexec</th></tr></thead><tbody>';
         d.mounts.forEach(function(m) {
@@ -344,7 +395,7 @@ function loadDiag() {
 
       // --- Kernel Info ---
       if (d.kernel_info) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1FAF0; Kernel Info' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Kernel Info', 'chip') + '<div class="card-body">';
         html += '<div class="diag-item"><span class="diag-label">Release</span><span class="diag-value" style="font-family:monospace;color:var(--yellow)">' + escHtml(d.kernel_info.release) + '</span></div>';
         html += '<div class="diag-item"><span class="diag-label">Arch</span><span class="diag-value">' + escHtml(d.kernel_info.arch) + '</span></div>';
         const aslrVal = d.kernel_info.aslr;
@@ -359,7 +410,7 @@ function loadDiag() {
       // --- Security Modules ---
       if (d.security_modules) {
         const sm = d.security_modules;
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F6E1; Security Modules' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Security Modules', 'shield') + '<div class="card-body">';
         // SELinux
         if (sm.selinux.present) {
           const seStatus = sm.selinux.enforcing === 1 ? '<span class="badge badge-ok">Enforcing</span>' : sm.selinux.enforcing === 0 ? '<span class="badge badge-warn">Permissive</span>' : '<span class="badge badge-warn">Unknown</span>';
@@ -381,9 +432,9 @@ function loadDiag() {
 
       // --- LD_PRELOAD ---
       if (d.ld_preload && (d.ld_preload.exists || d.ld_preload.env_value)) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F4E6; LD_PRELOAD' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('LD_PRELOAD', 'package') + '<div class="card-body">';
         if (d.ld_preload.exists) {
-          html += '<div class="diag-item"><span class="diag-label">/etc/ld.so.preload</span><span class="diag-value">' + (d.ld_preload.writable ? '<span class="badge badge-no">&#x26A0; WRITABLE (critical!)</span>' : '<span class="badge badge-ok">exists, not writable</span>') + '</span></div>';
+          html += '<div class="diag-item"><span class="diag-label">/etc/ld.so.preload</span><span class="diag-value">' + (d.ld_preload.writable ? '<span class="badge badge-no">' + diagIconInline('warn') + 'WRITABLE (critical!)</span>' : '<span class="badge badge-ok">exists, not writable</span>') + '</span></div>';
           if (d.ld_preload.content) {
             html += '<pre style="font-size:11px;background:rgba(0,0,0,.3);padding:8px;border-radius:4px;margin:8px 0 0 0;color:var(--fg)">' + escHtml(d.ld_preload.content) + '</pre>';
           }
@@ -396,9 +447,9 @@ function loadDiag() {
 
       // --- NFS Exports ---
       if (d.nfs_exports && d.nfs_exports.readable) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F4C1; NFS Exports' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('NFS Exports', 'folder') + '<div class="card-body">';
         if (d.nfs_exports.no_root_squash && d.nfs_exports.no_root_squash.length > 0) {
-          html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:8px">&#x26A0; no_root_squash found!</div>';
+          html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:8px">' + diagIconInline('warn') + 'no_root_squash found!</div>';
           d.nfs_exports.no_root_squash.forEach(function(l) {
             html += '<div style="font-family:monospace;font-size:11px;color:var(--yellow)">' + escHtml(l) + '</div>';
           });
@@ -411,14 +462,14 @@ function loadDiag() {
 
       // --- Systemd Timers ---
       if (d.systemd_timers && d.systemd_timers.length > 0) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x23F1; Systemd Timers' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Systemd Timers', 'clock') + '<div class="card-body" style="padding:0">';
         html += '<table class="file-table"><thead><tr><th>Timer</th><th>Writable</th><th>ExecStart</th><th>Exec Writable</th></tr></thead><tbody>';
         d.systemd_timers.forEach(function(t) {
           const rowStyle = t.exec_writable ? 'background:rgba(248,81,73,.06)' : '';
           html += '<tr style="' + rowStyle + '"><td style="font-size:11px;font-family:monospace">' + escHtml(t.timer_path) + '</td>';
           html += '<td>' + (t.timer_writable ? '<span class="badge badge-no">YES</span>' : '<span style="color:var(--muted)">no</span>') + '</td>';
           html += '<td style="font-size:11px;font-family:monospace">' + escHtml(t.exec_start || '-') + '</td>';
-          html += '<td>' + (t.exec_writable ? '<span class="badge badge-no">&#x26A0; YES</span>' : '<span style="color:var(--muted)">' + (t.exec_start ? 'no' : '-') + '</span>') + '</td></tr>';
+          html += '<td>' + (t.exec_writable ? '<span class="badge badge-no">' + diagIconInline('warn') + 'YES</span>' : '<span style="color:var(--muted)">' + (t.exec_start ? 'no' : '-') + '</span>') + '</td></tr>';
         });
         html += '</tbody></table></div></div>';
       }
@@ -426,7 +477,7 @@ function loadDiag() {
       // ---- Privesc vectors (existing) ----
       html += '<div class="diag-grid" style="margin-bottom:16px">';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F4C1; Binary Directories' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('Binary Directories', 'folder') + '<div class="card-body" style="padding:0">';
       if (d.bin_dirs && d.bin_dirs.length > 0) {
         html += '<table class="file-table"><thead><tr><th>Path</th><th>Readable</th><th>Writable</th></tr></thead><tbody>';
         d.bin_dirs.forEach(function(b) {
@@ -439,7 +490,7 @@ function loadDiag() {
       } else { html += '<div class="diag-empty">None found.</div>'; }
       html += '</div></div>';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x270F; Writable Dirs & Readable Sensitive Files' + diagCopyBtn() + '</div><div class="card-body">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('Writable Dirs & Readable Sensitive Files', 'edit') + '<div class="card-body">';
       if (d.writable_dirs && d.writable_dirs.length > 0) {
         html += '<div class="diag-subsection-title" style="margin-bottom:8px">Writable</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
@@ -447,9 +498,9 @@ function loadDiag() {
         html += '</div>';
       }
       if (d.readable_files && d.readable_files.length > 0) {
-        html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:4px">&#x26A0; Readable sensitive files:</div>';
+        html += '<div class="diag-alert diag-alert--danger" style="margin-bottom:4px">' + diagIconInline('warn') + 'Readable sensitive files:</div>';
         d.readable_files.forEach(function(f) {
-          html += '<div class="mono-sm" style="color:var(--yellow);cursor:pointer" onclick="insertCode(\'echo file_get_contents(\\\'' + escHtml(f) + '\\\');\')">&#x1F4C4; ' + escHtml(f) + '</div>';
+          html += '<div class="mono-sm" style="color:var(--yellow);cursor:pointer" onclick="insertCode(\'echo file_get_contents(\\\'' + escHtml(f) + '\\\');\')">' + diagIconInline('file') + escHtml(f) + '</div>';
         });
       }
       html += '</div></div>';
@@ -458,16 +509,16 @@ function loadDiag() {
       // ---- Panels + Creds ----
       html += '<div class="diag-grid" style="margin-bottom:16px">';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F3E0; Detected Panels' + diagCopyBtn() + '</div><div class="card-body">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('Detected Panels', 'home') + '<div class="card-body">';
       if (d.panels && d.panels.length > 0) {
-        d.panels.forEach(function(p) { html += '<div class="diag-item"><span class="diag-value" style="color:var(--green)">&#x2713; ' + escHtml(p) + '</span></div>'; });
+        d.panels.forEach(function(p) { html += '<div class="diag-item"><span class="diag-value" style="color:var(--green)">' + diagIconInline('check') + escHtml(p) + '</span></div>'; });
       } else { html += '<div style="color:var(--muted)">None detected.</div>'; }
       html += '</div></div>';
 
-      html += '<div class="card" style="margin:0"><div class="card-header">&#x1F511; Environment Files (.env)' + diagCopyBtn() + '</div><div class="card-body">';
+      html += '<div class="card" style="margin:0">' + diagCardHeader('Environment Files (.env)', 'key') + '<div class="card-body">';
       if (d.env_files && Object.keys(d.env_files).length > 0) {
         Object.entries(d.env_files).forEach(function(e) {
-          html += '<div style="font-size:11px;color:var(--yellow);margin-bottom:4px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">&#x25B6; ' + escHtml(e[0]) + '</div>';
+          html += '<div style="font-size:11px;color:var(--yellow);margin-bottom:4px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">' + diagIconInline('chevron') + escHtml(e[0]) + '</div>';
           html += '<pre style="display:none;font-size:11px;background:rgba(0,0,0,.3);padding:8px;border-radius:4px;margin:0 0 10px 0;white-space:pre-wrap;word-break:break-all;color:var(--fg)">' + escHtml(e[1]) + '</pre>';
         });
       } else { html += '<div style="color:var(--muted)">None found.</div>'; }
@@ -476,9 +527,9 @@ function loadDiag() {
 
       // --- Credential Files ---
       if (d.credential_files && Object.keys(d.credential_files).length > 0) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F4B3; Credential Files' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Credential Files', 'key') + '<div class="card-body">';
         Object.entries(d.credential_files).forEach(function(e) {
-          html += '<div style="font-size:11px;color:var(--yellow);margin-bottom:4px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">&#x25B6; ' + escHtml(e[0]) + '</div>';
+          html += '<div style="font-size:11px;color:var(--yellow);margin-bottom:4px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">' + diagIconInline('chevron') + escHtml(e[0]) + '</div>';
           html += '<pre style="display:none;font-size:11px;background:rgba(0,0,0,.3);padding:8px;border-radius:4px;margin:0 0 10px 0;white-space:pre-wrap;word-break:break-all;color:var(--fg)">' + escHtml(e[1]) + '</pre>';
         });
         html += '</div></div>';
@@ -486,7 +537,7 @@ function loadDiag() {
 
       // --- Backup Files ---
       if (d.backup_files && d.backup_files.length > 0) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F4E6; Backup / Config Files' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Backup / Config Files', 'package') + '<div class="card-body">';
         d.backup_files.forEach(function(bf) {
           html += '<div class="diag-item"><span class="diag-label mono-sm">' + escHtml(bf.path) + '</span><span class="diag-value">' + formatBytes(bf.size) + (bf.readable ? ' <span class="badge badge-ok">readable</span>' : '') + '</span></div>';
         });
@@ -495,7 +546,7 @@ function loadDiag() {
 
       // ---- Build info ----
       if (typeof __BUILD !== 'undefined') {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F3F7; Build Info' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Build Info', 'tag') + '<div class="card-body">';
         [
           ['Build ID', __BUILD.short_id],
           ['SHA256', __BUILD.hash],
@@ -509,7 +560,7 @@ function loadDiag() {
       }
 
       // ---- Processes ----
-      html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x25B6; Running Processes' + diagCopyBtn() + '</div><div class="card-body" style="padding:0">';
+      html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Running Processes', 'play') + '<div class="card-body" style="padding:0">';
       html += '<div style="max-height:300px;overflow-y:auto">';
       html += '<table class="file-table"><thead><tr><th>PID</th><th>UID</th><th>Command</th></tr></thead><tbody>';
       (d.processes || []).forEach(function(p) {
@@ -520,7 +571,7 @@ function loadDiag() {
 
       // ---- Framework Detection ----
       if (d.frameworks && d.frameworks.length > 0) {
-        html += '<div class="card" style="margin-bottom:16px"><div class="card-header">&#x1F50D; Framework / CMS Detection' + diagCopyBtn() + '</div><div class="card-body">';
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('Framework / CMS Detection', 'search') + '<div class="card-body">';
         d.frameworks.forEach(function(fw) {
           var verBadge = fw.version ? '<span class="badge badge-ok">' + escHtml(fw.version) + '</span>' : '<span class="badge badge-warn">unknown</span>';
           html += '<div style="margin-bottom:16px;padding:12px;background:rgba(0,0,0,.2);border-radius:6px;border:1px solid var(--border)">';
@@ -555,7 +606,7 @@ function loadDiag() {
       }
 
       // ---- Disabled functions ----
-      html += '<div class="card"><div class="card-header">&#x1F6AB; Disabled Functions' + diagCopyBtn() + '</div><div class="card-body"><div class="mono-sm" style="color:var(--muted);word-break:break-all">' + escHtml(d.disable_functions) + '</div></div></div>';
+      html += '<div class="card">' + diagCardHeader('Disabled Functions', 'ban') + '<div class="card-body"><div class="mono-sm" style="color:var(--muted);word-break:break-all">' + escHtml(d.disable_functions) + '</div></div></div>';
 
       body.innerHTML = html;
     })

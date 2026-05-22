@@ -14,30 +14,21 @@ if (isset($_POST['action']) && $_POST['action'] === 'read_session_file') {
         exit;
     }
 
-    $real = shells_x_realpath($path);
-    if ($real === null) {
-        echo json_encode(['error' => 'invalid path']);
+    $realResult = shells_x_validate_readable_file($path);
+    if (isset($realResult['error'])) {
+        echo json_encode(['error' => $realResult['error']]);
         exit;
     }
-
-    if (!is_file($real)) {
-        echo json_encode(['error' => 'not a regular file']);
-        exit;
-    }
-
-    if (!is_readable($real)) {
-        echo json_encode(['error' => 'file not readable']);
-        exit;
-    }
+    $real = $realResult['path'];
 
     $sessRaw = ini_get('session.save_path') ?: '';
-    $sessResolved = shells_x_parse_session_save_path($sessRaw);
-    $root = shells_x_realpath(getcwd() ?: '.');
+    $sessResult = shells_x_parse_session_save_path($sessRaw);
+    $rootResult = shells_x_realpath(getcwd() ?: '.');
     $allowedRoots = [];
-    if ($sessResolved !== '')
-        $allowedRoots[] = $sessResolved;
-    if ($root !== null)
-        $allowedRoots[] = $root;
+    if (!isset($sessResult['error']))
+        $allowedRoots[] = $sessResult['path'];
+    if (!isset($rootResult['error']))
+        $allowedRoots[] = $rootResult['path'];
     if (!shells_x_is_path_allowed($real, $allowedRoots)) {
         echo json_encode(['error' => 'forbidden']);
         exit;
@@ -754,8 +745,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
     // --- Session save path & session files ---
     $sessionInfo = [];
     $sessRaw = ini_get('session.save_path') ?: '';
-    $sessResolved = shells_x_parse_session_save_path($sessRaw);
-    $sessDirExists = ($sessResolved !== null) && is_dir($sessResolved);
+    $sessResult = shells_x_parse_session_save_path($sessRaw);
+    $sessResolved = isset($sessResult['error']) ? null : $sessResult['path'];
+    $sessDirExists = $sessResolved !== null && is_dir($sessResolved);
     $sessDirWritable = $sessDirExists && @is_writable($sessResolved);
     $sessionFiles = [];
     if ($sessDirExists) {

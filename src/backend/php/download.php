@@ -8,14 +8,15 @@ if (isset($_GET['download'])) {
         http_response_code(400);
         exit;
     }
-    $real = shells_x_validate_readable_file($file);
-    if ($real === null) {
+    $realResult = shells_x_validate_readable_file($file);
+    if (isset($realResult['error'])) {
         http_response_code(404);
         exit;
     }
+    $real = $realResult['path'];
     // Confine downloads to the webshell's working directory tree.
-    $root = shells_x_realpath(getcwd() ?: '.');
-    if ($root === null || !shells_x_is_path_allowed($real, [$root])) {
+    $rootResult = shells_x_realpath(getcwd() ?: '.');
+    if (isset($rootResult['error']) || !shells_x_is_path_allowed($real, [$rootResult['path']])) {
         http_response_code(403);
         exit;
     }

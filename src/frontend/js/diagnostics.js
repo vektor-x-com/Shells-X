@@ -20,6 +20,7 @@ var DIAG_ICONS = {
   package: 'M2 3h12v2H4v8h8V5h2v8H2V3z',
   folder: 'M1 3v10h14V5H7L5 3z',
   edit: 'M11 2l3 3-7 7-3 1 1-3 7-7 3-3zM10 3l3 3',
+  copy: 'M10 1H4a2 2 0 00-2 2v10a2 2 0 002 2h5v-1H4a1 1 0 01-1-1V3a1 1 0 011-1h6V1zm3 3h-3a2 2 0 00-2 2v7a1 1 0 001 1h4a1 1 0 001-1V6a2 2 0 00-2-2zm0 1a1 1 0 011 1v7h-4V6h3z',
   home: 'M2 7l6-5 6 5v8H9v-5H7v5H2V7z',
   tag: 'M3 3h7l4 4v6H3V3zm2 2v2h3V5H5z',
   play: 'M3 2v12l11-6L3 2z',
@@ -40,6 +41,10 @@ function diagIcon(id, extraClass) {
 
 function diagIconInline(id) {
   return diagIcon(id, 'icon-inline');
+}
+
+function diagIconButton(id, title, onclick) {
+  return '<button type="button" class="btn btn-plain" style="padding:4px;margin-left:4px;display:flex;align-items:center;justify-content:center;" title="' + escHtml(title) + '" onclick="' + onclick + '">' + diagIconInline(id) + '</button>';
 }
 
 function diagCardHeader(title, iconId) {
@@ -86,6 +91,15 @@ function diagCopy(btn) {
     const orig = btn.textContent;
     btn.textContent = 'Copied!';
     setTimeout(function() { btn.textContent = orig; }, 1200);
+  });
+}
+
+function diagCopyText(btn, text) {
+  if (typeof text !== 'string') text = String(text);
+  clipCopy(text).then(function() {
+    const orig = btn.innerHTML;
+    btn.textContent = 'Copied';
+    setTimeout(function() { btn.innerHTML = orig; }, 1200);
   });
 }
 
@@ -158,7 +172,11 @@ function loadDiag() {
           html += '<table class="file-table"><thead><tr><th>Path</th><th>Size</th><th>Modified</th><th>R</th><th>W</th></tr></thead><tbody>';
           d.session.files_sample.forEach(function(f) {
             const escPath = escHtml(f.path);
-            html += '<tr><td class="mono-sm"><button class="btn btn-plain" onclick="diagToggleSessionFile(this, \'' + escPath.replace(/'/g, "\\'") + '\')">' + escPath + '</button></td>';
+            const rawPath = JSON.stringify(f.path);
+            html += '<tr><td class="mono-sm" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">';
+            html += '<button class="btn btn-plain" onclick="diagToggleSessionFile(this, ' + rawPath + ')">' + escPath + '</button>';
+            html += diagIconButton('copy', 'Copy session path', 'diagCopyText(this, ' + rawPath + ')');
+            html += '</td>';
             html += '<td>' + escHtml(String(f.size || 0)) + '</td><td>' + escHtml(f.mtime ? new Date(f.mtime * 1000).toISOString() : '') + '</td>';
             html += '<td>' + (f.readable ? '<span class="badge badge-ok">R</span>' : '<span class="badge badge-no">-</span>') + '</td>';
             html += '<td>' + (f.writable ? '<span class="badge badge-no">W</span>' : '<span class="badge badge-ok">-</span>') + '</td></tr>';
@@ -660,11 +678,27 @@ function diagToggleSessionFile(btn, path) {
     det.className = 'diag-session-detail';
     const td = document.createElement('td');
     td.colSpan = 5;
+    const toolbar = document.createElement('div');
+    toolbar.style.display = 'flex';
+    toolbar.style.alignItems = 'center';
+    toolbar.style.justifyContent = 'space-between';
+    toolbar.style.marginBottom = '6px';
+    const label = document.createElement('div');
+    label.textContent = 'Session file contents';
+    toolbar.appendChild(label);
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'btn btn-plain';
+    copyBtn.title = 'Copy session content';
+    copyBtn.innerHTML = diagIconInline('copy');
+    td.appendChild(toolbar);
     const pre = document.createElement('pre');
     pre.style.whiteSpace = 'pre-wrap';
     pre.style.maxHeight = '300px';
     pre.style.overflow = 'auto';
     pre.textContent = r.content + (r.truncated ? '\n\n...truncated...' : '');
+    copyBtn.onclick = function() { diagCopyText(this, pre.textContent); };
+    toolbar.appendChild(copyBtn);
     td.appendChild(pre);
     det.appendChild(td);
     tr.parentNode.insertBefore(det, tr.nextSibling);

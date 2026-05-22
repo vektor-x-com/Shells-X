@@ -149,6 +149,25 @@ function loadDiag() {
       html += '</div></div>';
       html += '</div>';
 
+      // ---- Session storage info ----
+      if (d.session) {
+        html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('PHP Sessions', 'package') + '<div class="card-body">';
+        // Summary rows removed — detailed R/W and path shown in the files table below.
+        if (d.session.files_sample && d.session.files_sample.length > 0) {
+          html += '<div class="diag-subsection-title">Session files (sample)</div>';
+          html += '<table class="file-table"><thead><tr><th>Path</th><th>Size</th><th>Modified</th><th>R</th><th>W</th></tr></thead><tbody>';
+          d.session.files_sample.forEach(function(f) {
+            const escPath = escHtml(f.path);
+            html += '<tr><td class="mono-sm"><button class="btn btn-plain" onclick="diagToggleSessionFile(this, \'' + escPath.replace(/'/g, "\\'") + '\')">' + escPath + '</button></td>';
+            html += '<td>' + escHtml(String(f.size || 0)) + '</td><td>' + escHtml(f.mtime ? new Date(f.mtime * 1000).toISOString() : '') + '</td>';
+            html += '<td>' + (f.readable ? '<span class="badge badge-ok">R</span>' : '<span class="badge badge-no">-</span>') + '</td>';
+            html += '<td>' + (f.writable ? '<span class="badge badge-no">W</span>' : '<span class="badge badge-ok">-</span>') + '</td></tr>';
+          });
+          html += '</tbody></table>';
+        }
+        html += '</div></div>';
+      }
+
       // ---- ROW 2: Functions + Extensions ----
       html += '<div class="diag-grid" style="margin-bottom:16px">';
       html += '<div class="card" style="margin:0">' + diagCardHeader('Functions', 'gear') + '<div class="card-body">';
@@ -615,6 +634,44 @@ function loadDiag() {
     })
     .finally(function() { window._diagInFlight = null; });
   return window._diagInFlight;
+}
+
+// Fetch and display a session file's contents. Inserts a detail row after
+// the clicked table row showing the file body inside a <pre>.
+function diagToggleSessionFile(btn, path) {
+  const tr = btn.closest('tr');
+  if (!tr) return;
+  // If already expanded, remove next sibling detail row
+  if (tr.nextElementSibling && tr.nextElementSibling.classList && tr.nextElementSibling.classList.contains('diag-session-detail')) {
+    tr.parentNode.removeChild(tr.nextElementSibling);
+    return;
+  }
+  const fd = new FormData();
+  fd.append('action', 'read_session_file');
+  fd.append('path', path);
+  btn.disabled = true;
+  fetchJSON(fd).then(function(r) {
+    btn.disabled = false;
+    if (r.error) {
+      alert('Error: ' + r.error);
+      return;
+    }
+    const det = document.createElement('tr');
+    det.className = 'diag-session-detail';
+    const td = document.createElement('td');
+    td.colSpan = 5;
+    const pre = document.createElement('pre');
+    pre.style.whiteSpace = 'pre-wrap';
+    pre.style.maxHeight = '300px';
+    pre.style.overflow = 'auto';
+    pre.textContent = r.content + (r.truncated ? '\n\n...truncated...' : '');
+    td.appendChild(pre);
+    det.appendChild(td);
+    tr.parentNode.insertBefore(det, tr.nextSibling);
+  }).catch(function(err) {
+    btn.disabled = false;
+    alert('Failed: ' + err.message);
+  });
 }
 
 function formatBytes(b) {

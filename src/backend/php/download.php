@@ -1,18 +1,21 @@
 <?php
+if (!function_exists('shells_x_realpath')) {
+    require_once __DIR__ . '/helpers.php';
+}
 if (isset($_GET['download'])) {
     $file = $_GET['download'];
     if (!is_string($file) || $file === '') {
         http_response_code(400);
         exit;
     }
-    $real = realpath($file);
-    if ($real === false || !is_file($real) || !is_readable($real)) {
+    $real = shells_x_validate_readable_file($file);
+    if ($real === null) {
         http_response_code(404);
         exit;
     }
     // Confine downloads to the webshell's working directory tree.
-    $root = realpath(getcwd() ?: '.');
-    if ($root === false || strpos($real, $root) !== 0) {
+    $root = shells_x_realpath(getcwd() ?: '.');
+    if ($root === null || !shells_x_is_path_allowed($real, [$root])) {
         http_response_code(403);
         exit;
     }

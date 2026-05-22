@@ -1,5 +1,6 @@
 [
     "crypto",
+    "helpers",
     "download",
     "scanner",
     "filebrowser",

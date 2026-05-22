@@ -121,10 +121,8 @@ function loadDiag() {
       window._lastDiagBlob = d;
       let html = '';
 
-      // ---- ROW 1: System + Identity ----
-      html += '<div class="diag-grid" style="margin-bottom:16px">';
-
-      html += '<div class="card" style="margin:0">' + diagCardHeader('System', 'monitor') + '<div class="card-body">';
+      // ---- ROW 1: System (includes identity rows) ----
+      html += '<div class="card" style="margin-bottom:16px">' + diagCardHeader('System', 'monitor') + '<div class="card-body">';
       [
         ['PHP', d.php_version],
         ['OS', d.os],
@@ -137,16 +135,6 @@ function loadDiag() {
       ].forEach(function(kv) {
         html += '<div class="diag-item"><span class="diag-label">' + kv[0] + '</span><span class="diag-value">' + kv[1] + '</span></div>';
       });
-      if (d.container && d.container.detected) {
-        html += '<div style="margin-top:10px;padding:8px;background:rgba(210,153,34,.1);border-radius:4px">';
-        html += '<div class="diag-alert diag-alert--warn">' + diagIconInline('warn') + 'Container detected: ' + escHtml(d.container.type || 'unknown') + '</div>';
-        html += '<div class="diag-note" style="margin-top:4px">' + (d.container.hints || []).map(escHtml).join(', ') + '</div>';
-        html += '<div class="diag-note" style="margin-top:2px">Network data reflects container namespace, not host.</div>';
-        html += '</div>';
-      }
-      html += '</div></div>';
-
-      html += '<div class="card" style="margin:0">' + diagCardHeader('Identity', 'user') + '<div class="card-body">';
       [
         ['User', d.user_name + ' (uid=' + d.uid + ')'],
         ['Group', d.group_name + ' (gid=' + d.gid + ')'],
@@ -155,13 +143,18 @@ function loadDiag() {
         html += '<div class="diag-item"><span class="diag-label">' + kv[0] + '</span><span class="diag-value">' + kv[1] + '</span></div>';
       });
       if (d.group_memberships && Object.keys(d.group_memberships).length > 0) {
-        html += '<div class="diag-alert diag-alert--danger" style="margin-top:10px">' + diagIconInline('warn') + 'Privileged group members:</div>';
+        html += '<div class="diag-alert diag-alert--danger" style="margin-top:8px">' + diagIconInline('warn') + 'Privileged group members:</div>';
         Object.entries(d.group_memberships).forEach(function(e) {
           html += '<div class="diag-item"><span class="diag-label" style="color:var(--yellow)">' + escHtml(e[0]) + '</span><span class="diag-value">' + e[1].map(escHtml).join(', ') + '</span></div>';
         });
       }
+      if (d.container && d.container.detected) {
+        html += '<div style="margin-top:10px;padding:8px;background:rgba(210,153,34,.1);border-radius:4px">';
+        html += '<div class="diag-alert diag-alert--warn">' + diagIconInline('warn') + 'Container detected: ' + escHtml(d.container.type || 'unknown') + '</div>';
+        html += '<div class="diag-note" style="margin-top:4px">' + (d.container.hints || []).map(escHtml).join(', ') + '</div>';
+        html += '</div>';
+      }
       html += '</div></div>';
-      html += '</div>';
 
       // ---- Session storage info ----
       if (d.session) {

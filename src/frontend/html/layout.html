@@ -134,8 +134,8 @@
               </div>
             </div>
           </header>
-          <div id="sql-settings-panel" hidden style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15)">
-            <div class="grid-4" style="gap:8px;margin-bottom:8px">
+          <div id="sql-settings-panel" class="sql-settings-panel" hidden>
+            <div class="grid-4">
               <label class="form-label">Type
                 <select class="form-control" id="sql-driver" onchange="sqlDriverChange()">
                   <option value="mysql">MySQL</option>
@@ -152,7 +152,7 @@
                 <input type="text" class="form-control" id="sql-db" placeholder="mydb">
               </label>
             </div>
-            <div class="grid-4" style="gap:8px;margin-bottom:12px">
+            <div class="grid-4">
               <label class="form-label">User
                 <input type="text" class="form-control" id="sql-user" placeholder="root" autocomplete="off">
               </label>
@@ -161,7 +161,7 @@
               </label>
             </div>
             <button type="button" class="btn btn-sm btn-primary" onclick="sqlConnect()">Test &amp; Connect</button>
-            <span id="sql-connect-status" style="margin-left:8px;font-size:12px"></span>
+            <span id="sql-connect-status"></span>
           </div>
           <div class="card-body card-body--flush">
             <div class="terminal-stream terminal-stream--tall" id="sql-output" role="log" aria-live="polite"></div>

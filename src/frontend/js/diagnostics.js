@@ -212,8 +212,8 @@ function loadDiag() {
         html += '</div>';
       }
       if (d.disable_functions) {
-        html += '<div style="margin-top:12px;font-size:11px;color:var(--muted);cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">' + diagIconInline('chevron') + 'Raw disable_functions ini</div>';
-        html += '<div style="display:none;margin-top:4px;font-size:11px;word-break:break-all;color:var(--muted);background:rgba(0,0,0,.2);padding:8px;border-radius:4px">' + escHtml(d.disable_functions) + '</div>';
+        html += '<div class="diag-raw-toggle" onclick="this.nextElementSibling.classList.toggle(\'visible\')">' + diagIconInline('chevron') + 'Raw disable_functions ini</div>';
+        html += '<div class="diag-raw-content">' + escHtml(d.disable_functions) + '</div>';
       }
       html += '</div></div>';
 

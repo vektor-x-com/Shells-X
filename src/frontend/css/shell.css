@@ -562,3 +562,30 @@
   }
 
   .faraday-split-wrap { margin-top: 6px; }
+
+  /* SQL Shell */
+  .sql-settings-panel {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,.15);
+  }
+  .sql-settings-panel[hidden] { display: none; }
+  #sql-connect-status { margin-left: 8px; font-size: 12px; }
+  .sql-result-wrap { overflow-x: auto; }
+  .sql-result-wrap td { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sql-result-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Diagnostics — collapsible raw value block */
+  .diag-raw-toggle { margin-top: 12px; font-size: 11px; color: var(--muted); cursor: pointer; user-select: none; }
+  .diag-raw-content { display: none; margin-top: 4px; font-size: 11px; word-break: break-all; color: var(--muted); background: rgba(0,0,0,.2); padding: 8px; border-radius: 4px; }
+  .diag-raw-content.visible { display: block; }
+
+  /* Encryption passphrase overlay (crypto.js — shown when tab sessionStorage is empty) */
+  .enc-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  .enc-overlay-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 32px; width: 320px; max-width: 90vw; }
+  .enc-overlay-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .enc-overlay-hint { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+  .enc-overlay-input { display: block; width: 100%; margin-bottom: 12px; }
+  .enc-overlay-btn { width: 100%; }
+  .enc-overlay-btn:hover { background: var(--accent-hover); }
+  .enc-overlay-err { color: var(--red); font-size: 12px; margin-top: 8px; min-height: 16px; }

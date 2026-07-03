@@ -95,15 +95,14 @@ try {
 
   function _showPassphraseOverlay(digestFn) {
     const ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;background:var(--bg,#1a1a1a);display:flex;align-items:center;justify-content:center;z-index:9999';
+    ov.className = 'enc-overlay';
     ov.innerHTML =
-      '<div style="background:var(--surface,#252525);border:1px solid var(--border,#333);border-radius:8px;padding:32px;width:320px;max-width:90vw">'
-      + '<div style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--fg,#e0e0e0)">Session key required</div>'
-      + '<div style="font-size:12px;color:var(--muted,#888);margin-bottom:16px">Enter the login password to initialise the encryption key for this tab.</div>'
-      + '<input id="__sx_enc_pw" type="password" placeholder="Password" autocomplete="current-password"'
-      +   ' style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border,#333);border-radius:4px;background:var(--bg,#1a1a1a);color:var(--fg,#e0e0e0);font-size:13px;margin-bottom:12px">'
-      + '<button id="__sx_enc_ok" style="width:100%;padding:8px;background:var(--accent,#4a9eff);color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Unlock</button>'
-      + '<div id="__sx_enc_err" style="color:var(--red,#f85149);font-size:12px;margin-top:8px;min-height:16px"></div>'
+      '<div class="enc-overlay-box">'
+      + '<div class="enc-overlay-title">Session key required</div>'
+      + '<div class="enc-overlay-hint">Enter the login password to initialise the encryption key for this tab.</div>'
+      + '<input id="__sx_enc_pw" type="password" placeholder="Password" autocomplete="current-password" class="form-control enc-overlay-input">'
+      + '<button id="__sx_enc_ok" class="btn btn-primary enc-overlay-btn">Unlock</button>'
+      + '<div id="__sx_enc_err" class="enc-overlay-err"></div>'
       + '</div>';
     document.body.appendChild(ov);
     const inp = ov.querySelector('#__sx_enc_pw');

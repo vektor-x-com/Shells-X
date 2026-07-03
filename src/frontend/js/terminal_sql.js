@@ -115,8 +115,7 @@ function sqlRenderTable(streamId, columns, rows, count, truncated) {
   var wasAtBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 24;
 
   var wrap = document.createElement('div');
-  wrap.className = 'stream-out';
-  wrap.style.overflowX = 'auto';
+  wrap.className = 'stream-out sql-result-wrap';
 
   if (!columns || columns.length === 0) {
     wrap.textContent = '(empty result)';
@@ -143,10 +142,6 @@ function sqlRenderTable(streamId, columns, rows, count, truncated) {
     var tr = document.createElement('tr');
     row.forEach(function(cell) {
       var td = document.createElement('td');
-      td.style.maxWidth = '400px';
-      td.style.overflow = 'hidden';
-      td.style.textOverflow = 'ellipsis';
-      td.style.whiteSpace = 'nowrap';
       td.title = cell;
       td.textContent = cell;
       tr.appendChild(td);
@@ -157,7 +152,7 @@ function sqlRenderTable(streamId, columns, rows, count, truncated) {
   wrap.appendChild(table);
 
   var meta = document.createElement('div');
-  meta.style.cssText = 'font-size:11px;color:var(--muted);margin-top:4px';
+  meta.className = 'sql-result-meta';
   meta.textContent = count + ' row' + (count !== 1 ? 's' : '') + (truncated ? ' (truncated — 500 row limit)' : '');
   wrap.appendChild(meta);
 

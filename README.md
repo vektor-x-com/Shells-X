@@ -21,6 +21,7 @@ A modular, single-file web shell framework with a build generator. Source module
 |---|---|
 | **PHP Console** | Execute PHP with fatal-error recovery, configurable timeout, terminal-stream output, history navigation |
 | **OS Shell** | Auto-detected command execution (probes `system` / `exec` / `shell_exec` / `passthru` / `popen` / `proc_open`), persistent CWD, history |
+| **SQL Shell** | Interactive MySQL and PostgreSQL shell — connect to any reachable DB, run queries, results rendered as tables; credentials sent per-request, no server-side session |
 | **File Browser** | Navigate, download, upload, delete. Shows permissions, owner:group, symlink targets, R/W flags |
 | **Port Scanner** | Server-side parallel TCP/UDP scanner with banner grab, TLS cert inspection, service fingerprinting. Up to 512 concurrent connects |
 | **System Diagnostics** | 30+ pure-PHP recon checks for privesc, network pivoting, credential harvesting — works even when all exec is disabled |
@@ -63,7 +64,7 @@ Output lands in `dist/`. Deploy the single `.php` file to a web server.
 | `--tunnel FILE` | Embed tunnel PHP (WebTun or Neo-reGeorg) |
 | `--seed STRING` | Operator seed → deterministic fingerprint + palette |
 | `--minify` | Strip comments, collapse whitespace |
-| `--exclude MODULES` | Comma-separated: `tunnel`, `diagnostics`, `history`, `scanner`, `faraday` (core modules like `shell` cannot be excluded) |
+| `--exclude MODULES` | Comma-separated: `tunnel`, `diagnostics`, `history`, `scanner`, `faraday`, `sql` (core modules like `shell` cannot be excluded) |
 | `--theme NAME` | One of 16 presets — see [Theming](#theming) |
 | `--accent COLOR` | Custom accent hex (e.g. `"#ff6600"`), overrides theme accent |
 | `--output NAME` | Custom output filename |
@@ -95,6 +96,22 @@ Both consoles share the same terminal-stream UI — append-only output with sepa
 Snippet buttons (`scandir`, `/etc/passwd`, `phpinfo`, `uname`, `traceroute`) common one-liners into the PHP input. History is persisted to IndexedDB so Ctrl+↑ recalls commands from previous sessions, not just the current page load.
 
 Feature `traceroute` added which uses php sockets extension (if available) to count hops by fuzzing TTL numbers, so you can define the scanned port you see, is a port forward or it's actually the host port.
+---
+
+## SQL Shell
+
+An interactive SQL terminal built into the Console tab. Connect to any MySQL or PostgreSQL database reachable from the web server and run queries interactively — no server-side session, credentials are injected per-request.
+
+- **MySQL** — uses `mysqli` (preferred) or `pdo_mysql` fallback
+- **PostgreSQL** — uses `pdo_pgsql`
+- Connection settings (host, port, database, user, password, driver) live in a collapsible panel; "Test & Connect" validates before enabling the shell
+- SELECT results render as paginated tables (500-row cap with truncation notice)
+- INSERT / UPDATE / DELETE / DDL shows "Query OK, N row(s) affected"
+- Snippet buttons for common queries (`SELECT VERSION()`, `SHOW TABLES`, `SHOW DATABASES`, …)
+- Full history navigation (Ctrl+↑/↓), multi-line input (Shift+Enter), Ctrl+L to clear
+
+Probe runs on load — if neither `mysqli`, `pdo_mysql`, nor `pdo_pgsql` is installed, the input is disabled and a badge explains why. Exclude with `--exclude sql` if not needed.
+
 ---
 
 ## File Browser
@@ -386,10 +403,10 @@ Internal target services for testing the scanner and tunnel:
 
 | Key | Context | Action |
 |-----|---------|--------|
-| `Enter` | PHP Console / OS Shell | Execute |
-| `Shift+Enter` | PHP Console / OS Shell | Newline (multi-line input) |
-| `Ctrl+↑` / `Ctrl+↓` | PHP Console / OS Shell | Navigate history |
-| `Ctrl+L` | PHP Console / OS Shell | Clear output |
+| `Enter` | PHP Console / OS Shell / SQL Shell | Execute |
+| `Shift+Enter` | PHP Console / OS Shell / SQL Shell | Newline (multi-line input) |
+| `Ctrl+↑` / `Ctrl+↓` | PHP Console / OS Shell / SQL Shell | Navigate history |
+| `Ctrl+L` | PHP Console / OS Shell / SQL Shell | Clear output |
 
 ---
 

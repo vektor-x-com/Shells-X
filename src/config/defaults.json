@@ -8,6 +8,7 @@
     "diagnostics": { "required": false, "description": "System recon and privesc hints" },
     "history":     { "required": false, "description": "Command execution history" },
     "scanner":     { "required": false, "description": "TCP/UDP port scanner with banner grab + TLS info" },
-    "faraday":     { "required": false, "description": "Faraday Vulnerability Manager export (needs diagnostics+scanner data)" }
+    "faraday":     { "required": false, "description": "Faraday Vulnerability Manager export (needs diagnostics+scanner data)" },
+    "sql":         { "required": false, "description": "SQL shell — MySQL and PostgreSQL via mysqli/PDO" }
   }
 }

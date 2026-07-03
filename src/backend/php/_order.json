@@ -7,6 +7,7 @@
     "fileops",
     "eval",
     "shell",
+    "sql",
     "diagnostics",
     "destruct",
     "snippets"

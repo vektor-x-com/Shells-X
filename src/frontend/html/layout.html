@@ -117,6 +117,62 @@
           </div>
         </article>
 <!-- /MODULE:shell -->
+<!-- MODULE:sql -->
+        <article class="card" id="sql-card">
+          <header class="card-header card-header-3col">
+            <div class="card-header-left"><span class="card-header-name">SQL</span> <span id="sql-status"></span></div>
+            <div class="card-header-mid">
+              <span class="card-header-label">snippets:</span>
+              <div id="sql-snippet-buttons" class="btn-group"></div>
+            </div>
+            <div class="card-header-right">
+              <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="sqlToggleSettings()" aria-expanded="false" aria-controls="sql-settings-panel">Connect</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="streamClear('sql-output')">Clear</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="streamCopy('sql-output')"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1v1H3v13h10V2h-3V1zm1 1h2v2H7V2zM5 4h6v10H5z"/></svg> Copy</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="streamDownload('sql-output','sql-query')"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1v7L4.5 5.5l-1.4 1.4L8 11.8l4.9-4.9-1.4-1.4L9 8V1zM2 13v2h12v-2z"/></svg> Download</button>
+              </div>
+            </div>
+          </header>
+          <div id="sql-settings-panel" hidden style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15)">
+            <div class="grid-4" style="gap:8px;margin-bottom:8px">
+              <label class="form-label">Type
+                <select class="form-control" id="sql-driver" onchange="sqlDriverChange()">
+                  <option value="mysql">MySQL</option>
+                  <option value="pgsql">PostgreSQL</option>
+                </select>
+              </label>
+              <label class="form-label">Host
+                <input type="text" class="form-control" id="sql-host" placeholder="127.0.0.1">
+              </label>
+              <label class="form-label">Port
+                <input type="text" class="form-control" id="sql-port" placeholder="3306">
+              </label>
+              <label class="form-label">Database
+                <input type="text" class="form-control" id="sql-db" placeholder="mydb">
+              </label>
+            </div>
+            <div class="grid-4" style="gap:8px;margin-bottom:12px">
+              <label class="form-label">User
+                <input type="text" class="form-control" id="sql-user" placeholder="root" autocomplete="off">
+              </label>
+              <label class="form-label">Password
+                <input type="password" class="form-control" id="sql-password" autocomplete="new-password">
+              </label>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" onclick="sqlConnect()">Test &amp; Connect</button>
+            <span id="sql-connect-status" style="margin-left:8px;font-size:12px"></span>
+          </div>
+          <div class="card-body card-body--flush">
+            <div class="terminal-stream terminal-stream--tall" id="sql-output" role="log" aria-live="polite"></div>
+            <div class="terminal-composer">
+              <label class="sr-only" for="sql-input">SQL query</label>
+              <span class="terminal-prefix" id="sql-prompt" aria-hidden="true">sql&gt;</span>
+              <textarea id="sql-input" class="terminal-input" placeholder="SQL query  ·  Enter runs  ·  Shift+Enter newline  ·  ↑/↓ history  ·  click Connect first" spellcheck="false"></textarea>
+            </div>
+          </div>
+        </article>
+<!-- /MODULE:sql -->
       </section>
 
 <!-- MODULE:tunnel -->

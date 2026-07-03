@@ -18,6 +18,7 @@ MODULE_BACKEND = {
     'files':       ['filebrowser.php', 'fileops.php'],
     'diagnostics': ['diagnostics.php'],
     'console':     ['eval.php', 'snippets.php'],
+    'sql':         ['sql.php'],
 }
 
 MODULE_JS = {
@@ -29,6 +30,7 @@ MODULE_JS = {
     'console':     ['terminal_php.js'],   # PHP-specific adapter; engine stays
     'shell':       ['terminal_shell.js'], # OS Shell adapter; engine stays
     'faraday':     ['faraday.js'],
+    'sql':         ['terminal_sql.js'],
     # terminal_engine.js is intentionally absent — always loaded so either
     # adapter (console/shell, or future python/etc.) can call Terminal.bind().
 }

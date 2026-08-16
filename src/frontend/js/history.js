@@ -69,7 +69,7 @@ function clearHistory() {
 function exportHistory() {
   dbGetAll('history').then(h => {
     const text = h.map(item =>
-      '// ' + item.ts + '\n' + item.cmd + '\n\n/* OUTPUT:\n' + item.out + '\n*/\n'
+      '// ' + item.ts + '\n' + item.cmd + '\n\n/' + '* OUTPUT:\n' + item.out + '\n' + '*' + '/\n'
     ).join('\n---\n\n');
     const blob = new Blob([text], {type: 'text/plain'});
     const a = document.createElement('a');

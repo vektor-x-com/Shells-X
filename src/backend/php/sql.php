@@ -36,6 +36,16 @@ if (isset($_POST['action']) && $_POST['action'] === 'sql_query') {
     $conn    = null;
     $method  = '';
 
+    // DSN components are concatenated into PDO connection strings — strip
+    // DSN metacharacters so a host/db like "x;unix_socket=/" can't smuggle
+    // extra parameters into the string. mysqli passes them as separate
+    // arguments and needs no such scrubbing.
+    $dsnSafe = function ($s) { return preg_replace('/[;=\s]/', '', $s); };
+    $host = $dsnSafe($host);
+    $db   = $dsnSafe($db);
+    if ($port < 1 || $port > 65535) $port = $driver === 'pgsql' ? 5432 : 3306;
+    if ($host === '') $host = '127.0.0.1';
+
     // ---- Connect ----
     if ($driver === 'pgsql') {
         if (!extension_loaded('pdo_pgsql')) {

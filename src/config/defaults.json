@@ -1,14 +1,45 @@
 {
-  "version": "1.4.0",
+  "version": "2.0.0",
   "modules": {
-    "console":     { "required": true,  "description": "PHP code execution console" },
-    "files":       { "required": true,  "description": "File browser, upload, delete" },
-    "shell":       { "required": true,  "description": "OS command shell — always included" },
-    "tunnel":      { "required": false, "description": "Neo-reGeorg SOCKS5 tunnel endpoint" },
-    "diagnostics": { "required": false, "description": "System recon and privesc hints" },
-    "history":     { "required": false, "description": "Command execution history" },
-    "scanner":     { "required": false, "description": "TCP/UDP port scanner with banner grab + TLS info" },
-    "faraday":     { "required": false, "description": "Faraday Vulnerability Manager export (needs diagnostics+scanner data)" },
-    "sql":         { "required": false, "description": "SQL shell — MySQL and PostgreSQL via mysqli/PDO" }
+    "console": {
+      "required": true,
+      "description": "PHP code execution console"
+    },
+    "files": {
+      "required": true,
+      "description": "File browser, upload, delete"
+    },
+    "shell": {
+      "required": true,
+      "description": "OS command shell \u2014 always included"
+    },
+    "bypass": {
+      "required": false,
+      "description": "FastCGI socket takeover \u2014 OS shell when all exec functions are disabled"
+    },
+    "tunnel": {
+      "required": false,
+      "description": "Neo-reGeorg SOCKS5 tunnel endpoint"
+    },
+    "diagnostics": {
+      "required": false,
+      "description": "System recon and privesc hints"
+    },
+    "history": {
+      "required": false,
+      "description": "Command execution history"
+    },
+    "scanner": {
+      "required": false,
+      "description": "TCP/UDP port scanner with banner grab + TLS info"
+    },
+    "faraday": {
+      "required": false,
+      "description": "Faraday Vulnerability Manager export (needs diagnostics+scanner data)"
+    },
+    "sql": {
+      "required": false,
+      "description": "SQL shell \u2014 MySQL and PostgreSQL via mysqli/PDO"
+    }
   }
 }

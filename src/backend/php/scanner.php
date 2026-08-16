@@ -17,6 +17,13 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
             @unlink(substr($__f, 0, -5) . '.lock');
         }
     }
+    // Orphaned locks (state json already gone — crash between unlinks, or a
+    // not-found path from an older build) have no .json sibling for the loop
+    // above to key off, so sweep them directly.
+    foreach (@glob($__sc_prefix . '*.lock') ?: [] as $__f) {
+        if (@filemtime($__f) < time() - 86400)
+            @unlink($__f);
+    }
 
     // ---- Helpers ----
     $__sc_state_path = function ($id) use ($__sc_prefix) {
@@ -62,6 +69,15 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
         $tmp = $p . '.tmp.' . bin2hex(random_bytes(3));
         @file_put_contents($tmp, json_encode($state));
         @rename($tmp, $p);
+    };
+    // Progress files exist ONLY while a scan is live. Completion ('done'),
+    // stop and destroy remove them immediately — the operator's IndexedDB
+    // is the durable record. The 24h GC above stays as a crash safety net
+    // for sessions that died without a final poll (browser killed, etc.).
+    $__sc_remove_files = function ($id) use ($__sc_state_path, $__sc_events_path, $__sc_lock_path) {
+        @unlink($__sc_state_path($id));
+        @unlink($__sc_events_path($id));
+        @unlink($__sc_lock_path($id));
     };
 
     $__sc_validate_id = function ($id) {
@@ -578,6 +594,7 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
         $state = $__sc_read_state($id);
         if (!$state) {
             $__sc_release_lock($lockFp);
+            @unlink($__sc_lock_path($id));   // we created it via fopen('c')
             echo json_encode(['error' => 'Scan not found']);
             exit;
         }
@@ -705,6 +722,11 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
             }
         }
 
+        // Scan just finished: the response above carries the final state and
+        // the last events — nothing on the server needs the files anymore.
+        if ($state['status'] === 'done')
+            $__sc_remove_files($id);
+
         echo json_encode([
             'state' => [
                 'id' => $state['id'],
@@ -738,6 +760,7 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
         $state = $__sc_read_state($id);
         if (!$state) {
             $__sc_release_lock($lockFp);
+            @unlink($__sc_lock_path($id));   // we created it via fopen('c')
             echo json_encode(['error' => 'Scan not found']);
             exit;
         }
@@ -751,6 +774,10 @@ if (isset($_POST['action']) && strncmp($_POST['action'], 'scan_', 5) === 0) {
         }
         $__sc_write_state($id, $state);
         $__sc_release_lock($lockFp);
+        // A stopped scan will never be polled again — remove its progress
+        // files right away; results already delivered live in the client.
+        if ($action === 'scan_stop')
+            $__sc_remove_files($id);
         echo json_encode(['status' => $state['status']]);
         exit;
     }

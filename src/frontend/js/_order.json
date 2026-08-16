@@ -7,6 +7,7 @@
     "faraday",
     "terminal_engine",
     "terminal_php",
+    "bypass",
     "terminal_shell",
     "terminal_sql",
     "tunnel",

@@ -211,7 +211,9 @@ def _inject_build_meta(content, meta):
     out = out.replace('{{BUILD_SHORT_ID}}', meta['short_id'])
     out = out.replace('{{BUILD_HASH}}', meta['hash'])
     out = out.replace('{{BUILD_TIMESTAMP}}', meta['timestamp'])
-    out = out.replace('{{BUILD_META_JSON}}', json.dumps(meta))
+    # escape '</' so operator-controlled meta (e.g. --seed) cannot close the
+    # inline <script> block — standard JSON-in-HTML-script hardening
+    out = out.replace('{{BUILD_META_JSON}}', json.dumps(meta).replace('</', '<\/'))
     return out
 
 

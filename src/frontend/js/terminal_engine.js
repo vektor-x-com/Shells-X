@@ -140,7 +140,8 @@ function _initHistory(adapter) {
 function _initKeydown(adapter) {
   const input = document.getElementById(adapter.inputEl);
   if (!input) return;
-  input.addEventListener('keydown', e => {
+  adapter._inputEl = adapter.inputEl;   // remembered for idempotent re-bind
+  adapter._keydown = e => {
     // Enter (alone) submits; Shift+Enter inserts a newline.
     if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
@@ -179,7 +180,8 @@ function _initKeydown(adapter) {
       e.preventDefault();
       streamClear(adapter.outputEl);
     }
-  });
+  };
+  input.addEventListener('keydown', adapter._keydown);
 }
 
 function _run(adapterId) {
@@ -280,6 +282,18 @@ function bind(config) {
     snippets: [],
     excludeMarkers: [],
   }, config);
+  // Idempotent re-bind: an adapter rebound for the same card (e.g. the
+  // bypass panel enabling the OS shell after probing) must not stack a
+  // second keydown listener or duplicate snippet buttons.
+  const prev = _adapters[adapter.id];
+  if (prev && prev._keydown && prev._inputEl) {
+    const prevInput = document.getElementById(prev._inputEl);
+    if (prevInput) prevInput.removeEventListener('keydown', prev._keydown);
+    if (prev.snippetEl) {
+      const prevSnips = document.getElementById(prev.snippetEl);
+      if (prevSnips) prevSnips.textContent = '';
+    }
+  }
   _adapters[adapter.id] = adapter;
   _initLabels(adapter);
   _initSnippets(adapter);

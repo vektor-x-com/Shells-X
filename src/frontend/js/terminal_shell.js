@@ -59,9 +59,18 @@ function probeShell() {
         });
       } else {
         card.classList.remove('is-hidden');
-        status.innerHTML = '<span class="badge badge-no">&#x2716; No exec function available</span>';
+        if (window.Bypass) {
+          // Exec is disabled but the FastCGI takeover module is present —
+          // offer the exploit panel instead of a dead input.
+          status.innerHTML = '<span class="badge badge-no">&#x2716; exec disabled</span> <span class="badge badge-ok">FastCGI takeover available</span>';
+          Bypass.show();
+        } else {
+          status.innerHTML = '<span class="badge badge-no">&#x2716; No exec function available</span>';
+        }
         document.getElementById('os-shell-input').disabled = true;
-        document.getElementById('os-shell-input').placeholder = 'OS shell unavailable — all exec functions are disabled';
+        document.getElementById('os-shell-input').placeholder = window.Bypass
+          ? 'OS shell disabled — run a FastCGI takeover exploit below to enable it'
+          : 'OS shell unavailable — all exec functions are disabled';
       }
     })
     .catch(() => {

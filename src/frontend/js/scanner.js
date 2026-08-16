@@ -82,6 +82,15 @@ function scanStart() {
 }
 
 function scanControl(id, action) {
+  // Stopping is a client-side state change from now on as far as history is
+  // concerned: the server removes a stopped/finished scan's progress files
+  // immediately, and this localStorage marker distinguishes "I stopped this"
+  // from "it completed" after a reload
+  if (action === 'stop') {
+    try { localStorage.setItem('sx.scan_stopped.' + id, String(Date.now())); } catch (e) {}
+  } else if (action === 'resume') {
+    try { localStorage.removeItem('sx.scan_stopped.' + id); } catch (e) {}
+  }
   const fd = new FormData();
   fd.append('action', 'scan_' + action);
   fd.append('id', id);
@@ -196,7 +205,9 @@ function scanPollOnce(id) {
 
 function scanReattach() {
   // On load: find scans in IDB with status=running, restart their pollers.
-  // Also sync with server to catch scans started in another tab / from import.
+  // Also sync with server to catch scans started in another tab. Note the
+  // server only knows LIVE scans now — completed scans persist in IDB alone
+  // and won't appear on a browser that never saw them (by design).
   dbGetAll('scans')
     .then(scans => { scans.forEach(s => { if (s.status === 'running') scanStartPoller(s.id); }); })
     .catch(err => console.warn('scan reattach (local) failed:', err))
@@ -264,6 +275,9 @@ function renderScanHeader(s) {
     ctrls += '<button class="btn btn-sm btn-primary" data-id="' + escHtml(s.id) + '" onclick="scanControl(this.dataset.id,\'resume\')">▶ Resume</button>';
     ctrls += '<button class="btn btn-sm btn-danger" data-id="' + escHtml(s.id) + '" onclick="scanControl(this.dataset.id,\'stop\')">■ Stop</button>';
   }
+  let stoppedLocally = false;
+  try { stoppedLocally = s.status === 'stopped' && !!localStorage.getItem('sx.scan_stopped.' + s.id); } catch (e) {}
+  if (stoppedLocally) ctrls += '<span class="badge badge-no" title="stopped from this browser">&#9632; stopped locally</span>';
   if (typeof faradayExportScan === 'function') {
     ctrls += '<button class="btn btn-sm btn-secondary" data-id="' + escHtml(s.id) + '" onclick="faradayExportScan(this.dataset.id)" title="Export this scan as a faraday_json file">↑ Faraday</button>';
   }

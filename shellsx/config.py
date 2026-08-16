@@ -19,6 +19,7 @@ MODULE_BACKEND = {
     'diagnostics': ['diagnostics.php'],
     'console':     ['eval.php', 'snippets.php'],
     'sql':         ['sql.php'],
+    'bypass':      ['bypass.php'],
 }
 
 MODULE_JS = {
@@ -31,6 +32,7 @@ MODULE_JS = {
     'shell':       ['terminal_shell.js'], # OS Shell adapter; engine stays
     'faraday':     ['faraday.js'],
     'sql':         ['terminal_sql.js'],
+    'bypass':      ['bypass.js'],
     # terminal_engine.js is intentionally absent — always loaded so either
     # adapter (console/shell, or future python/etc.) can call Terminal.bind().
 }

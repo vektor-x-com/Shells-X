@@ -21,6 +21,7 @@ A modular, single-file web shell framework with a build generator. Source module
 |---|---|
 | **PHP Console** | Execute PHP with fatal-error recovery, configurable timeout, terminal-stream output, history navigation |
 | **OS Shell** | Auto-detected command execution (probes `system` / `exec` / `shell_exec` / `passthru` / `popen` / `proc_open`), persistent CWD, history |
+| **FastCGI Takeover** | OS shell on hosts where every exec function is disabled but the request is served by PHP-FPM/FastCGI — endpoint discovery via `/proc` + `FCGI_GET_VALUES`, then `sendmail_path`/extension-loading ini injection through `PHP_VALUE`/`PHP_ADMIN_VALUE` |
 | **SQL Shell** | Interactive MySQL and PostgreSQL shell — connect to any reachable DB, run queries, results rendered as tables; credentials sent per-request, no server-side session |
 | **File Browser** | Navigate, download, upload, delete. Shows permissions, owner:group, symlink targets, R/W flags |
 | **Port Scanner** | Server-side parallel TCP/UDP scanner with banner grab, TLS cert inspection, service fingerprinting. Up to 512 concurrent connects |
@@ -97,6 +98,44 @@ Snippet buttons (`scandir`, `/etc/passwd`, `phpinfo`, `uname`, `traceroute`) com
 
 Feature `traceroute` added which uses php sockets extension (if available) to count hops by fuzzing TTL numbers, so you can define the scanned port you see, is a port forward or it's actually the host port.
 ---
+
+## FastCGI Takeover (disable_functions bypass)
+
+When the OS Shell probe reports every exec function disabled, the Shell card
+offers the FastCGI takeover panel instead of a dead input:
+
+1. **Discovery** — unix sockets from `/proc/net/unix` and loopback TCP listeners
+   from `/proc/net/tcp{,6}` (no hardcoded paths or ports), each identified as
+   FastCGI by the spec-native `FCGI_GET_VALUES` management record.
+2. **Capability probe** — verifies per-request ini injection actually lands
+   (`PHP_VALUE` marker), reports worker PHP version/ZTS/uid and whether
+   `mail()`/`error_log()` triggers exist.
+3. **Exploit buttons** — one per technique, each streaming success/failure
+   output into the terminal:
+   - `sendmail_path + mail()` — injects `PHP_VALUE sendmail_path="sh -c ..."`
+     and triggers `mail()` (or `error_log($msg,1,$to)`, both route through
+     `php_mail()` → `popen()`); command output is captured from a random temp
+     file. Works on stock PHP-FPM, no target-side artifacts needed.
+   - `load extension (.so)` — stages an ABI-matched module implementing
+     `poc_exec()` with an `poc_ext.armed` safety flag, loads it via
+     `PHP_ADMIN_VALUE extension_dir`/`extension`; native C execution that
+     `disable_functions` cannot touch. The module stays loaded on the worker
+     (PHP cannot unload) but is disarmed after every command.
+4. **OS shell enabled** — on success the input is enabled and every command
+   runs through the chosen technique. Each command is a full self-cleaning
+   cycle on one `FCGI_KEEP_CONN`-pinned worker: pre-heal → clean probe
+   (capture true ini defaults) → exploit → cleanup (restore `sendmail_path`,
+   `disable_functions`, `extension_dir`, disarm module, unlink temp files),
+   with the cleanup verified in-band.
+
+The inner FastCGI requests execute the shell file itself, dispatched on custom
+`POC_ROLE`/`POC_MODE` params no webserver forwards, and authenticate to the
+shell's own auth gate with a build-bound token — outside HTTP traffic cannot
+reach them. Excludable at build time: `--exclude bypass`.
+
+Validated against a default-posture aaPanel lab (PHP 7.4, official
+`disable_functions` list, `/tmp/php-cgi-74.sock` owned by the pool user).
+See `dev/watch-btpanel.sh` to develop against that lab.
 
 ## SQL Shell
 

